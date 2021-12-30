@@ -5,8 +5,8 @@ LOG.level = "debug";
 
 LOG.info("Application starting...");
 
-const testPayload =
-  "a2 69 74 69 6d 65 73 74 61 6d 70 01 66 76 61 6c 75 65 73 81 a5 68 6f 62 6a 65 63 74 49 64 fa 3f 80 00 00 6a 69 6e 73 74 61 6e 63 65 49 64 fa 40 00 00 00 6a 72 65 73 6f 75 72 63 65 49 64 fa 40 40 00 00 68 64 61 74 61 74 79 70 65 65 46 6c 6f 61 74 65 76 61 6c 75 65 fb 40 08 f5 c2 8f 5c 28 f6";
+const message =
+  "a26974696d657374616d70016676616c75657381a5686f626a6563744964fa3f8000006a696e7374616e63654964fa400000006a7265736f757263654964fa4040000068646174617479706565466c6f61746576616c7565fb4008f5c28f5c28f6";
 
-const decodedMessage = cbor.decodeAllSync(testPayload);
-LOG.info("Result is: ", decodedMessage);
+const decodedMessage = cbor.decodeAllSync(message);
+LOG.info("Result is: ", JSON.stringify(decodedMessage));

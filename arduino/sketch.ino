@@ -72,7 +72,7 @@ static void dump_hex(Stream &stream, const uint8_t *const buffer, size_t size)
 {
   for (size_t i = 0; i < size; ++i)
   {
-    stream.printf("%02x ", buffer[i]);
+    stream.printf("%02x", buffer[i]);
   }
   stream.println();
 }
