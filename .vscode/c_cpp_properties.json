@@ -2,30 +2,6 @@
     "version": 4,
     "configurations": [
         {
-            "name": "Win32",
-            "compilerPath": "",
-            "compilerArgs": [],
-            "intelliSenseMode": "clang-x64",
-            "includePath": [
-                "${workspaceFolder}/**",
-                "C:\\DevTools\\arduino-1.8.19\\hardware\\arduino\\avr\\cores\\arduino",
-                "C:\\DevTools\\arduino-1.8.19\\hardware\\tools\\avr\\avr\\include",
-                "C:\\DevTools\\arduino-1.8.19\\hardware\\arduino\\avr\\variants\\standard",
-                "C:\\Users\\Andrei\\Documents\\Arduino\\libraries\\TinyCBOR\\src",
-                "C:\\DevTools\\arduino-1.8.19\\hardware\\tools\\avr\\lib\\gcc\\avr\\7.3.0\\include",
-                "C:\\DevTools\\arduino-1.8.19\\hardware\\tools\\avr\\lib\\gcc\\avr\\7.3.0\\include-fixed"
-            ],
-            "forcedInclude": [
-                "C:\\DevTools\\arduino-1.8.19\\hardware\\arduino\\avr\\cores\\arduino\\Arduino.h"
-            ],
-            "cStandard": "c11",
-            "cppStandard": "c++17",
-            "defines": [
-                "ARDUINO=9600",
-                "USBCON"
-            ]
-        },
-        {
             "name": "Arduino",
             "compilerPath": "C:\\Users\\Andrei\\AppData\\Local\\Arduino15\\packages\\esp8266\\tools\\xtensa-lx106-elf-gcc\\3.0.4-gcc10.3-1757bed\\bin\\xtensa-lx106-elf-g++",
             "compilerArgs": [
@@ -44,6 +20,7 @@
             "includePath": [
                 "C:\\Users\\Andrei\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.0.2\\tools\\sdk\\include",
                 "C:\\Users\\Andrei\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.0.2\\tools\\sdk\\lwip2\\include",
+                "c:\\School\\dissertation\\arduino\\build\\core",
                 "C:\\Users\\Andrei\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.0.2\\cores\\esp8266",
                 "C:\\Users\\Andrei\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.0.2\\variants\\generic",
                 "C:\\Users\\Andrei\\Documents\\Arduino\\libraries\\TinyCBOR\\src",

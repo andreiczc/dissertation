@@ -1,3 +1,4 @@
+#include "Stream.h"
 #include "tinycbor.h"
 
 #define byte uint8_t
@@ -17,39 +18,33 @@ static int register_to_network()
   return 0;
 }
 
-static int get_time()
-{
-  // get time request
-  // MOCK
-  static int currTime = 0;
-
-  return currTime++;
-}
-
-static void cbor_encode(uint8_t *payload, int payload_size)
+static size_t cbor_encode(uint8_t *const payload, int buffer_size)
 {
   CborEncoder encoder;
   CborEncoder map_encoder;
   CborEncoder array_encoder;
 
-  memset(payload, 0, payload_size); // empty the buffer
+  memset(payload, 0, buffer_size); // empty the buffer
 
-  cbor_encoder_init(&encoder, payload, payload_size, 0);
+  cbor_encoder_init(&encoder, payload, buffer_size, 0);
   cbor_encoder_create_map(&encoder, &map_encoder, 2); // timestamp + values
 
   cbor_encode_text_stringz(&map_encoder, "timestamp");
-  cbor_encode_int(&map_encoder, get_time());
+  cbor_encode_int(&map_encoder, 1);
 
   cbor_encode_text_stringz(&map_encoder, "values");
   cbor_encoder_create_array(&map_encoder, &array_encoder, 1);
 
-  add_value(&array_encoder, RESOURCE_ID, get_mock_value());
+  add_value(&array_encoder, RESOURCE_ID, 2.9f);
 
   cbor_encoder_close_container(&map_encoder, &array_encoder);
   cbor_encoder_close_container(&encoder, &map_encoder);
+
+  return cbor_encoder_get_buffer_size(&encoder, payload);
 }
 
-static void add_value(CborEncoder *parent_encoder, int resource_id, float value)
+static void add_value(CborEncoder *const parent_encoder, int resource_id,
+                      float value)
 {
   CborEncoder innerEncoder;
 
@@ -68,14 +63,18 @@ static void add_value(CborEncoder *parent_encoder, int resource_id, float value)
   cbor_encode_text_stringz(&innerEncoder, "Float");
 
   cbor_encode_text_stringz(&innerEncoder, "value");
-  cbor_encode_float(&innerEncoder, value);
+  cbor_encode_double(&innerEncoder, 3.12);
 
   cbor_encoder_close_container(parent_encoder, &innerEncoder);
 }
 
-static float get_mock_value()
+static void dump_hex(Stream &stream, const uint8_t *const buffer, size_t size)
 {
-  return 2.0f;
+  for (size_t i = 0; i < size; ++i)
+  {
+    stream.printf("%02x ", buffer[i]);
+  }
+  stream.println();
 }
 
 void setup()
@@ -87,13 +86,8 @@ void setup()
 
 void loop()
 {
-  cbor_encode(buffer, BUFFER_SIZE);
-  for (byte i = 0; i < BUFFER_SIZE; ++i)
-  {
-    Serial.print(buffer[i], HEX);
-    Serial.print(" ");
-  }
-  Serial.println();
+  size_t encoded_size = cbor_encode(buffer, BUFFER_SIZE);
+  dump_hex(Serial, buffer, encoded_size);
 
-  delay(5000);
+  delay(30 * 1000);
 }
