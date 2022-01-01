@@ -1,5 +1,5 @@
-#include "Stream.h"
 #include "tinycbor.h"
+#include "wifi_wrapper.h"
 
 #define byte uint8_t
 
@@ -8,15 +8,6 @@ static const int RESOURCE_ID = 5100;
 static int       INSTANCE_ID = 0;
 static int       BUFFER_SIZE = 128;
 static uint8_t   buffer[128];
-
-static int register_to_network()
-{
-  // broadcast to mqtt
-  // orchestrate using admin console
-  // MOCK
-
-  return 0;
-}
 
 static size_t cbor_encode(uint8_t *const payload, int buffer_size)
 {
@@ -79,7 +70,7 @@ static void dump_hex(Stream &stream, const uint8_t *const buffer, size_t size)
 
 void setup()
 {
-  INSTANCE_ID = register_to_network();
+  INSTANCE_ID = 0;
 
   Serial.begin(9600);
 }
