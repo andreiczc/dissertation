@@ -70,7 +70,8 @@ static void dump_hex(Stream &stream, const uint8_t *const buffer, size_t size)
 
 void setup()
 {
-  INSTANCE_ID = 0;
+  WifiWrapper wifi("WiFi-2.4", "180898Delia!", "");
+  INSTANCE_ID = wifi.get_instance_number();
 
   Serial.begin(9600);
 }
