@@ -1,7 +1,7 @@
-#include "wifi_wrapper.h"
-#include "fault_handler.h"
-
 #include <ESP8266WiFi.h>
+
+#include "logger.h"
+#include "wifi_wrapper.h"
 
 enum ErrorCodes
 {
@@ -10,11 +10,14 @@ enum ErrorCodes
 
 WifiWrapper::WifiWrapper(const char *ssid, const char *pass,
                          const char *broker_url)
+    : logger(Serial)
 {
   if (connect_to_wifi(ssid, pass))
   {
-    signal_fault("WiFi connection couldn't be established");
+    logger.error("WiFi connection couldn't be established");
   }
+
+  logger.info("WiFi connection successful");
 }
 
 int WifiWrapper::connect_to_wifi(const char *ssid, const char *pass) const

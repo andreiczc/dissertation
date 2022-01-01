@@ -1,4 +1,8 @@
+#include <FS.h>
+
 #include "tinycbor.h"
+
+#include "logger.h"
 #include "wifi_wrapper.h"
 
 #define byte uint8_t
@@ -8,6 +12,9 @@ static const int RESOURCE_ID = 5100;
 static int       INSTANCE_ID = 0;
 static int       BUFFER_SIZE = 128;
 static uint8_t   buffer[128];
+static char      ssid[64];
+static char      pass[64];
+static Logger    logger(Serial);
 
 static size_t cbor_encode(uint8_t *const payload, int buffer_size)
 {
@@ -68,18 +75,40 @@ static void dump_hex(Stream &stream, const uint8_t *const buffer, size_t size)
   stream.println();
 }
 
+static void read_secrets(FS &fs)
+{
+  if (!fs.exists("/secrets.txt"))
+  {
+    logger.error("File doesn't exist!");
+  }
+
+  File secrets_file = fs.open("/secrets.txt", "r");
+  secrets_file.readBytesUntil('\n', ssid, 64);
+  secrets_file.readBytes(pass, 64);
+  secrets_file.close();
+
+  Serial.print(ssid);
+  Serial.print(pass);
+}
+
 void setup()
 {
-  WifiWrapper wifi("WiFi-2.4", "180898Delia!", "");
-  INSTANCE_ID = wifi.get_instance_number();
-
   Serial.begin(9600);
+
+  if (!SPIFFS.begin())
+  {
+    logger.error("Couldn't mount filesystem");
+  }
+  read_secrets(SPIFFS);
+
+  WifiWrapper wifi(ssid, pass, "");
+  INSTANCE_ID = wifi.get_instance_number();
 }
 
 void loop()
 {
-  size_t encoded_size = cbor_encode(buffer, BUFFER_SIZE);
-  dump_hex(Serial, buffer, encoded_size);
+  /* size_t encoded_size = cbor_encode(buffer, BUFFER_SIZE);
+  dump_hex(Serial, buffer, encoded_size); */
 
   delay(30 * 1000);
 }

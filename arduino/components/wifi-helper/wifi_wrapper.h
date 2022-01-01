@@ -12,6 +12,8 @@ private:
   int register_to_network(const char *broker_url);
 
   int instance_number;
+
+  Logger logger;
 };
 
 #endif //  _WIFI_WRAPPER_H
