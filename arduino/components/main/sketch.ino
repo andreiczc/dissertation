@@ -90,37 +90,40 @@ static wl_status_t timed_wifi_status()
 
 static void read_wifi_credentials()
 {
-  int  idx       = 0;
-  char curr_char = 0;
+  int  idx        = 0;
+  char curr_char  = 0;
+  int  size_limit = 16;
 
-  while ((curr_char = EEPROM.read(idx++)) != ' ' && curr_char != 0)
+  while ((curr_char = EEPROM.read(idx++)) != ' ' && size_limit--)
   {
     ssid += curr_char;
   }
 
-  while ((curr_char = EEPROM.read(idx++)) != ' ' && curr_char != 0)
+  size_limit = 16;
+  while ((curr_char = EEPROM.read(idx++)) != ' ' && size_limit--)
   {
     pass += curr_char;
   }
 }
 
-static void store_wifi_credentials(String ssid, String pass)
+static void store_wifi_credentials(const String &ssid, const String &pass)
 {
   for (size_t i = 0; i < ssid.length(); ++i)
   {
     EEPROM.write(i, ssid[i]);
   }
-
   EEPROM.write(ssid.length(), ' ');
 
   for (size_t i = 0; i < pass.length(); ++i)
   {
-    EEPROM.write(ssid.length() + i, pass[i]);
+    EEPROM.write(ssid.length() + i + 1, pass[i]);
   }
+  EEPROM.write(ssid.length() + pass.length() + 1, ' ');
 
   EEPROM.commit();
 }
 
+// this function takes quite a while to execute
 static void empty_wifi_credentials()
 {
   for (int i = 0; i < ssid.length(); ++i)
@@ -147,7 +150,7 @@ static void start_wifi()
 
   store_wifi_credentials("WiFi-2.4",
                          "180898Delia!"); // will be replaced by SoftAP method
-  ESP.reset();
+  ESP.restart();
 }
 
 void setup()
