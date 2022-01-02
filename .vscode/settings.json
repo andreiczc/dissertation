@@ -11,6 +11,8 @@
     "initializer_list": "cpp",
     "ranges": "cpp",
     "*.tcc": "cpp",
-    "cmath": "cpp"
+    "cmath": "cpp",
+    "tcp_axtls.h": "c",
+    "async_config.h": "c"
   }
 }
