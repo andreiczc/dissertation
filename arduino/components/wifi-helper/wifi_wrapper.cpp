@@ -1,26 +1,18 @@
-#include <ESP8266WiFi.h>
-
-#include "logger.h"
 #include "wifi_wrapper.h"
-
-enum ErrorCodes
-{
-  WIFI_ERR = 1
-};
+#include "logger.h"
 
 WifiWrapper::WifiWrapper(const char *ssid, const char *pass,
                          const char *broker_url)
     : logger(Serial)
 {
-  if (connect_to_wifi(ssid, pass))
-  {
-    logger.error("WiFi connection couldn't be established");
-  }
+  connect_to_wifi(ssid, pass);
+  Serial.print(WiFi.status());
 
   logger.info("WiFi connection successful");
 }
 
-int WifiWrapper::connect_to_wifi(const char *ssid, const char *pass) const
+wl_status_t WifiWrapper::connect_to_wifi(const char *ssid,
+                                         const char *pass) const
 {
   if (WiFi.status() == WL_CONNECTED)
   {
@@ -34,12 +26,7 @@ int WifiWrapper::connect_to_wifi(const char *ssid, const char *pass) const
     delay(5000);
   }
 
-  if (WiFi.status() != WL_CONNECTED)
-  {
-    return ErrorCodes::WIFI_ERR;
-  }
-
-  return 0;
+  return WiFi.status();
 }
 
 int WifiWrapper::register_to_network(const char *broker_url)

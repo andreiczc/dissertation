@@ -1,4 +1,5 @@
 #include <FS.h>
+#include <GDBStub.h>
 
 #include "tinycbor.h"
 
@@ -83,17 +84,16 @@ static void read_secrets(FS &fs)
   }
 
   File secrets_file = fs.open("/secrets.txt", "r");
-  secrets_file.readBytesUntil('\n', ssid, 64);
+  secrets_file.readBytesUntil(' ', ssid, 64);
   secrets_file.readBytes(pass, 64);
   secrets_file.close();
-
-  Serial.print(ssid);
-  Serial.print(pass);
 }
 
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
+  gdbstub_init();
+  delay(30 * 1000);
 
   if (!SPIFFS.begin())
   {
@@ -107,8 +107,5 @@ void setup()
 
 void loop()
 {
-  /* size_t encoded_size = cbor_encode(buffer, BUFFER_SIZE);
-  dump_hex(Serial, buffer, encoded_size); */
-
   delay(30 * 1000);
 }

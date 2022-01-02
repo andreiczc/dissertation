@@ -23,6 +23,7 @@
                 "c:\\School\\dissertation\\arduino\\build\\core",
                 "C:\\Users\\Andrei\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.0.2\\cores\\esp8266",
                 "C:\\Users\\Andrei\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.0.2\\variants\\generic",
+                "C:\\Users\\Andrei\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.0.2\\libraries\\GDBStub\\src",
                 "C:\\Users\\Andrei\\Documents\\Arduino\\libraries\\TinyCBOR\\src",
                 "C:\\Users\\Andrei\\Documents\\Arduino\\libraries\\logger",
                 "C:\\Users\\Andrei\\Documents\\Arduino\\libraries\\wifi-helper",
