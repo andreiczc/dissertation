@@ -1,6 +1,7 @@
 #ifndef _WIFI_WRAPPER_H
 #define _WIFI_WRAPPER_H
 
+#include "logger.h"
 #include <ESP8266WiFi.h>
 
 class WifiWrapper

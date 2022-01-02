@@ -1,5 +1,4 @@
 #include "wifi_wrapper.h"
-#include "logger.h"
 
 WifiWrapper::WifiWrapper(const char *ssid, const char *pass,
                          const char *broker_url)
