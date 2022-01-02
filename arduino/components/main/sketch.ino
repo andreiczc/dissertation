@@ -1,10 +1,11 @@
+#include <EEPROM.h>
+#include <ESP8266WiFi.h>
 #include <FS.h>
 #include <GDBStub.h>
 
 #include "tinycbor.h"
 
 #include "logger.h"
-#include "wifi_wrapper.h"
 
 #define byte uint8_t
 
@@ -13,9 +14,9 @@ static const int RESOURCE_ID = 5100;
 static int       INSTANCE_ID = 0;
 static int       BUFFER_SIZE = 128;
 static uint8_t   buffer[128];
-static char      ssid[64];
-static char      pass[64];
 static Logger    logger(Serial);
+static String    ssid = "";
+static String    pass = "";
 
 static size_t cbor_encode(uint8_t *const payload, int buffer_size)
 {
@@ -76,17 +77,77 @@ static void dump_hex(Stream &stream, const uint8_t *const buffer, size_t size)
   stream.println();
 }
 
-static void read_secrets(FS &fs)
+static wl_status_t timed_wifi_status()
 {
-  if (!fs.exists("/secrets.txt"))
+  short ctr = 30;
+  while (WiFi.status() != WL_CONNECTED && ctr--)
   {
-    logger.error("File doesn't exist!");
+    delay(500);
   }
 
-  File secrets_file = fs.open("/secrets.txt", "r");
-  secrets_file.readBytesUntil(' ', ssid, 64);
-  secrets_file.readBytes(pass, 64);
-  secrets_file.close();
+  return WiFi.status();
+}
+
+static void read_wifi_credentials()
+{
+  int  idx       = 0;
+  char curr_char = 0;
+
+  while ((curr_char = EEPROM.read(idx++)) != ' ' && curr_char != 0)
+  {
+    ssid += curr_char;
+  }
+
+  while ((curr_char = EEPROM.read(idx++)) != ' ' && curr_char != 0)
+  {
+    pass += curr_char;
+  }
+}
+
+static void store_wifi_credentials(String ssid, String pass)
+{
+  for (size_t i = 0; i < ssid.length(); ++i)
+  {
+    EEPROM.write(i, ssid[i]);
+  }
+
+  EEPROM.write(ssid.length(), ' ');
+
+  for (size_t i = 0; i < pass.length(); ++i)
+  {
+    EEPROM.write(ssid.length() + i, pass[i]);
+  }
+
+  EEPROM.commit();
+}
+
+static void empty_wifi_credentials()
+{
+  for (int i = 0; i < ssid.length(); ++i)
+  {
+    ssid[i] = ' ';
+  }
+
+  for (int i = 0; i < pass.length(); ++i)
+  {
+    pass[i] = ' ';
+  }
+}
+
+static void start_wifi()
+{
+  read_wifi_credentials();
+  WiFi.begin(ssid, pass);
+  if (timed_wifi_status() == WL_CONNECTED)
+  {
+    logger.info("WiFi connection established!");
+    empty_wifi_credentials();
+    return;
+  }
+
+  store_wifi_credentials("WiFi-2.4",
+                         "180898Delia!"); // will be replaced by SoftAP method
+  ESP.reset();
 }
 
 void setup()
@@ -95,14 +156,9 @@ void setup()
   gdbstub_init();
   delay(30 * 1000);
 
-  if (!SPIFFS.begin())
-  {
-    logger.error("Couldn't mount filesystem");
-  }
-  read_secrets(SPIFFS);
+  EEPROM.begin(128);
 
-  WifiWrapper wifi(ssid, pass, "");
-  INSTANCE_ID = wifi.get_instance_number();
+  start_wifi();
 }
 
 void loop()
