@@ -1,7 +1,21 @@
 #include "net_utils.h"
+#include "eeprom_utils.h"
 #include "logger.h"
 
 #include <FS.h>
+
+static void startWifiStoredCredentials()
+{
+  const auto eepromUtils = eeprom::Utils(128);
+  const auto credentials = eepromUtils.readWifiCredentials();
+
+  WiFi.begin(credentials.first, credentials.second);
+  if (WiFi.waitForConnectResult() == WL_CONNECTED)
+  {
+    Logger::getInstance()->info("WiFi connection has been established!");
+    return;
+  }
+}
 
 static String createNetworkList()
 {
@@ -67,10 +81,5 @@ void NetUtils::startWifi()
                          "180898Delia!"); // will be replaced by SoftAP method
   start_wifi(true); */
 
-  WiFi.begin("WiFi-2.4", "180898Delia!");
-  if (WiFi.waitForConnectResult() == WL_CONNECTED)
-  {
-    Logger::getInstance()->info("WiFi connection has been established!");
-    return;
-  }
+  startWifiStoredCredentials();
 }
