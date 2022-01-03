@@ -1,5 +1,19 @@
 #include "logger.h"
 
+#include <Arduino.h>
+
+Logger *Logger::instance = nullptr;
+
+Logger *Logger::getInstance()
+{
+  if (instance == nullptr)
+  {
+    instance = new Logger(Serial);
+  }
+
+  return instance;
+}
+
 void Logger::error(const String &message) const
 {
   while (true)

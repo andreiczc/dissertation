@@ -6,13 +6,15 @@
 class Logger
 {
 public:
-  explicit Logger(Stream &stream) noexcept : impl(stream) {}
-
-  void info(const String &message) const;
-  void error(const String &message) const;
+  static Logger *getInstance();
+  void           info(const String &message) const;
+  void           error(const String &message) const;
 
 private:
-  Stream &impl;
+  explicit Logger(Stream &stream) noexcept : impl(stream) {}
+
+  Stream        &impl;
+  static Logger *instance;
 };
 
 #endif // _LOGGER_H
