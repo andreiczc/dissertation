@@ -1,8 +1,6 @@
 #include "logger.h"
 
-Logger::Logger(Stream &stream) : impl(stream) {}
-
-void Logger::error(const char *message) const
+void Logger::error(const String &message) const
 {
   while (true)
   {
@@ -14,7 +12,7 @@ void Logger::error(const char *message) const
   }
 }
 
-void Logger::info(const char *message) const
+void Logger::info(const String &message) const
 {
   impl.print("[INFO] ");
   impl.print(message);
