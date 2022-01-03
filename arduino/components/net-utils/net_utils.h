@@ -6,7 +6,6 @@
 class NetUtils
 {
 public:
-  static void createWebServer(AsyncWebServer *server);
   static void startWifi();
 };
 
