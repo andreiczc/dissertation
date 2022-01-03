@@ -23,31 +23,95 @@
     <div class="card" style="margin: 16px">
       <div style="margin: 16px">
         <h1 class="card-title">Sensor Configuration page</h1>
-        <form method="post" action="setCredentials">
-          <div>
-            <label>Available networks:</label>
-            <select
-              name="ssid"
-              id="wifi_networks"
-              size="4"
-              class="list-group list-group-flush"
-            >
-              %NETWORKS%
-            </select>
-            <br />
-            <label>Password: </label>
-            <input name="pass" length="16" />
-            <br />
-            <input
-              style="margin-top: 32px"
-              type="submit"
-              class="btn btn-secondary"
-            />
-          </div>
-        </form>
+
+        <div>
+          <label>Available networks:</label>
+          <select
+            name="ssid"
+            id="wifi_networks"
+            size="4"
+            class="list-group list-group-flush"
+          >
+            %NETWORKS%
+          </select>
+          <br />
+          <label>Password: </label>
+          <input type="password" id="pass_tb" name="pass" length="16" />
+          <br />
+          <input
+            id="submit_btn"
+            style="margin-top: 32px"
+            type="submit"
+            class="btn btn-secondary"
+          />
+        </div>
       </div>
     </div>
+    <div
+      id="alert-ssid"
+      style="margin: 16px; display: none"
+      class="alert alert-danger"
+      role="alert"
+    >
+      Please choose a network!
+    </div>
+    <div
+      id="alert-pass"
+      style="margin: 16px; display: none"
+      class="alert alert-danger"
+      role="alert"
+    >
+      Password can't be empty!
+    </div>
+    <div
+      id="alert-success"
+      style="margin: 16px; display: none"
+      class="alert alert-success"
+      role="alert"
+    >
+      WiFi settings saved successfully!
+    </div>
 
+    <script>
+      const button = document.getElementById("submit_btn");
+
+      button.addEventListener("click", (ev) => {
+        document.getElementById("alert-ssid").style.display = "none";
+        document.getElementById("alert-pass").style.display = "none";
+        document.getElementById("alert-success").style.display = "none";
+
+        const ssid = document.getElementById("wifi_networks").value;
+        if (ssid === "") {
+          document.getElementById("pass_tb").value = "";
+          document.getElementById("alert-ssid").style.display = "block";
+          return;
+        } else {
+          document.getElementById("alert-ssid").style.display = "none";
+        }
+
+        const pass = document.getElementById("pass_tb").value;
+        if (pass === "") {
+          document.getElementById("wifi_networks").value = "";
+          document.getElementById("alert-pass").style.display = "block";
+          return;
+        } else {
+          document.getElementById("alert-pass").style.display = "none";
+        }
+
+        document.getElementById("wifi_networks").value = "";
+        document.getElementById("pass_tb").value = "";
+        document.getElementById("alert-success").style.display = "block";
+
+        const payload = `${ssid} ${pass}`;
+        const ip = location.host;
+
+        const socket = new WebSocket(`ws://${ip}:8080`);
+        socket.addEventListener("open", () => {
+          socket.send(payload);
+          socket.close();
+        });
+      });
+    </script>
     <script
       src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
       integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
