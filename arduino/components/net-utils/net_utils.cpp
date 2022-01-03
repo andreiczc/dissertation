@@ -28,7 +28,7 @@ static String processor(const String &var)
   return String();
 }
 
-AsyncWebServer NetUtils::createWebServer(int port)
+void NetUtils::createWebServer(AsyncWebServer *server)
 {
   Logger *logger = Logger::getInstance();
 
@@ -37,16 +37,14 @@ AsyncWebServer NetUtils::createWebServer(int port)
     logger->error("Couldn't mount filesystem");
   }
 
-  AsyncWebServer server(port);
-  server.on("/", HTTP_GET,
-            [](AsyncWebServerRequest *request) {
-              request->send(SPIFFS, "/index.html", String(), false, processor);
-            });
+  server->on("/", HTTP_GET,
+             [](AsyncWebServerRequest *request) {
+               request->send(SPIFFS, "/index.html", String(), false, processor);
+             });
 
-  server.begin();
+  server->begin();
+
   logger->info("Web Server is up!");
-
-  return server;
 }
 
 void NetUtils::startWifi()

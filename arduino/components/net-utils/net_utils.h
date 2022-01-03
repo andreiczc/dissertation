@@ -6,8 +6,8 @@
 class NetUtils
 {
 public:
-  static AsyncWebServer createWebServer(int port);
-  static void           startWifi();
+  static void createWebServer(AsyncWebServer *server);
+  static void startWifi();
 };
 
 #endif // _NET_UTILS_H
