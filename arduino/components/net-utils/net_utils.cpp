@@ -6,10 +6,20 @@
 
 static String createNetworkList()
 {
-  auto   no_networks = WiFi.scanNetworks();
-  String result      = "";
+  const auto *logger = Logger::getInstance();
 
-  for (auto i = 0; i < no_networks; ++i)
+  logger->info("Will now turn on STATION mode and commence network scan!");
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+
+  delay(3000);
+
+  const auto noNetworks = WiFi.scanNetworks();
+  logger->info("Found " + String(noNetworks) + " networks");
+
+  String result = "";
+
+  for (auto i = 0; i < noNetworks; ++i)
   {
     result += "<option class=\"list-group-item\">";
     result += WiFi.SSID(i);
@@ -19,17 +29,7 @@ static String createNetworkList()
   return result;
 }
 
-static String processor(const String &var)
-{
-  if (var == "NETWORKS")
-  {
-    return createNetworkList();
-  }
-
-  return String();
-}
-
-static AsyncWebServer createWebServer()
+static AsyncWebServer createWebServer(const String &networkList)
 {
   const auto *logger = Logger::getInstance();
 
@@ -40,8 +40,44 @@ static AsyncWebServer createWebServer()
 
   auto server = AsyncWebServer(80);
   server.on("/", HTTP_GET,
-            [](AsyncWebServerRequest *request) {
-              request->send(SPIFFS, "/index.html", String(), false, processor);
+            [&logger, &networkList](AsyncWebServerRequest *request)
+            {
+              logger->info("Received GET request on /");
+              request->send(SPIFFS, "/index.html", String(), false,
+                            [&networkList](const String &var)
+                            {
+                              if (var == "NETWORKS")
+                              {
+                                return networkList;
+                              }
+
+                              return String();
+                            });
+            });
+  server.on("/bootstrap.css", HTTP_GET,
+            [&logger](AsyncWebServerRequest *request)
+            {
+              logger->info("Received GET request on /bootstrap.css");
+              request->send(SPIFFS, "/bootstrap.css", String(), false, nullptr);
+            });
+  server.on("/jquery.js", HTTP_GET,
+            [&logger](AsyncWebServerRequest *request)
+
+            {
+              logger->info("Received GET request on /jquery.js");
+              request->send(SPIFFS, "/jquery.js", String(), false, nullptr);
+            });
+  server.on("/popper.js", HTTP_GET,
+            [&logger](AsyncWebServerRequest *request)
+            {
+              logger->info("Received GET request on /popper.js");
+              request->send(SPIFFS, "/popper.js", String(), false, nullptr);
+            });
+  server.on("/bootstrap.js", HTTP_GET,
+            [&logger](AsyncWebServerRequest *request)
+            {
+              logger->info("Received GET request on /bootstrap.js");
+              request->send(SPIFFS, "/bootstrap.js", String(), false, nullptr);
             });
 
   server.begin();
@@ -66,10 +102,13 @@ static void startWifiAp()
 {
   const auto *logger = Logger::getInstance();
 
+  const auto networkList = createNetworkList();
+
+  WiFi.mode(WIFI_AP);
   WiFi.softAP("sensor-1f2a46kg", "1f2a46kg");
   logger->info("Soft AP is up!");
 
-  const auto webServer = createWebServer();
+  const auto webServer = createWebServer(networkList);
 
   while (true)
   {
