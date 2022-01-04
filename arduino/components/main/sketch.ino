@@ -1,11 +1,10 @@
 #include "logger.h"
-#include "net_utils.h"
 
 void setup()
 {
   Serial.begin(115200);
 
-  NetUtils::startWifi();
+  Logger::getInstance()->info("Program has started!");
 }
 
 void loop()
