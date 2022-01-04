@@ -2,6 +2,7 @@
 #include "eeprom_utils.h"
 #include "logger.h"
 
+#include <ESPAsyncWebServer.h>
 #include <FS.h>
 
 static String createNetworkList()
