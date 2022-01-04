@@ -54,6 +54,31 @@ static AsyncWebServer createWebServer(const String &networkList)
                               return String();
                             });
             });
+  server.on("/bootstrap.css", HTTP_GET,
+            [&logger](AsyncWebServerRequest *request)
+            {
+              logger->info("Received GET request on /bootstrap.css");
+              request->send(SPIFFS, "/bootstrap.css", "text/css");
+            });
+  server.on("/jquery.js", HTTP_GET,
+            [&logger](AsyncWebServerRequest *request)
+
+            {
+              logger->info("Received GET request on /jquery.js");
+              request->send(SPIFFS, "/jquery.js", "text/javascript");
+            });
+  server.on("/popper.js", HTTP_GET,
+            [&logger](AsyncWebServerRequest *request)
+            {
+              logger->info("Received GET request on /popper.js");
+              request->send(SPIFFS, "/popper.js", "text/javascript");
+            });
+  server.on("/bootstrap.js", HTTP_GET,
+            [&logger](AsyncWebServerRequest *request)
+            {
+              logger->info("Received GET request on /bootstrap.js");
+              request->send(SPIFFS, "/bootstrap.js", "text/javascript");
+            });
 
   server.begin();
 
