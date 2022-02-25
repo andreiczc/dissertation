@@ -1,5 +1,4 @@
 #include "net_utils.h"
-#include "eeprom_utils.h"
 #include "logger.h"
 
 #include <AsyncTCP.h>
@@ -100,20 +99,25 @@ static httpsserver::HTTPSServer createWebServerSecure()
 
   const auto *logger = Logger::getInstance();
 
-  auto       sslCert = SSLCert();
-  const auto returnCode =
-      createSelfSignedCert(sslCert, KEYSIZE_1024, "CN=ESP32,O=ase,C=RO");
-
-  if (returnCode)
+  auto sslCert = SSLCert();
+  if (createSelfSignedCert(sslCert, KEYSIZE_1024, "CN=ESP32,O=ase,C=RO"))
   {
     logger->error("Couldn't create https server");
   }
 
-  auto serverRunning = true;
+  auto server = HTTPSServer(&sslCert, 8081);
+  auto node   = ResourceNode("/credentials", "POST",
+                             [](HTTPRequest *req, HTTPResponse *res)
+                             {
+                             char buffer[256];
+                             req->readChars(buffer, 256);
+                             auto ssid = strtok(buffer, " ");
+                             auto pass = strtok(nullptr, " ");
 
-  auto server = HTTPSServer(&sslCert);
-  auto node =
-      ResourceNode("/", "GET", [](HTTPRequest *req, HTTPResponse *res) {});
+                             WiFi.mode(WIFI_STA);
+                             WiFi.begin(ssid, pass);
+                             ESP.restart();
+                             });
 
   server.registerNode(&node);
 
@@ -122,51 +126,40 @@ static httpsserver::HTTPSServer createWebServerSecure()
 
 static void startWifiAp()
 {
-  const auto *logger = Logger::getInstance();
-
-  const auto networkList = createNetworkList();
+  const auto *logger      = Logger::getInstance();
+  const auto  networkList = createNetworkList();
 
   WiFi.mode(WIFI_AP);
   WiFi.softAP("sensor-1f2a46kg", "1f2a46kg");
   logger->info("Soft AP is up!");
 
-  const auto webServer = createWebServer(networkList);
+  const auto webServer       = createWebServer(networkList);
+  auto       webServerSecure = createWebServerSecure();
+
+  webServerSecure.start();
+  if (!webServerSecure.isRunning())
+  {
+    logger->error("Https server is not up");
+  }
+
+  logger->info("Web servers are running");
 
   while (true)
   {
-    logger->info("Waiting for credentials");
-    delay(60 * 1000);
+    webServerSecure.loop();
+    delay(1 * 1000);
   }
-}
-
-static int8_t startWifiStoredCredentials()
-{
-  eeprom::Utils eepromUtils(128);
-  const auto    credentials = eepromUtils.readWifiCredentials();
-
-  const auto *instance = Logger::getInstance();
-  instance->info("SSID: " + credentials.first);
-  instance->info("Pass: " + credentials.second);
-
-  WiFi.disconnect();
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(credentials.first.c_str(), credentials.second.c_str());
-
-  return WiFi.waitForConnectResult();
 }
 
 void NetUtils::startWifi()
 {
-  const auto networkList = createNetworkList();
+  const auto *logger = Logger::getInstance();
 
-  if (startWifiStoredCredentials() == WL_CONNECTED)
+  if (WiFi.begin() != WL_CONNECT_FAILED)
   {
-    Logger::getInstance()->info("WiFi connection has been established!");
-
-    const auto httpWebServer = createWebServer(networkList);
-
+    logger->info("Connection successful");
     return;
   }
 
-  // startWifiAp();
+  startWifiAp();
 }
