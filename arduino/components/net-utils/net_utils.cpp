@@ -2,8 +2,14 @@
 #include "eeprom_utils.h"
 #include "logger.h"
 
+#include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-#include <FS.h>
+#include <HTTPRequest.hpp>
+#include <HTTPResponse.hpp>
+#include <HTTPSServer.hpp>
+#include <SPIFFS.h>
+#include <SSLCert.hpp>
+#include <WiFi.h>
 
 static String createNetworkList()
 {
@@ -88,15 +94,30 @@ static AsyncWebServer createWebServer(const String &networkList)
   return server;
 }
 
-static int8_t startWifiStoredCredentials()
+static httpsserver::HTTPSServer createWebServerSecure()
 {
-  const auto eepromUtils = eeprom::Utils(128);
-  const auto credentials = eepromUtils.readWifiCredentials();
+  using namespace httpsserver;
 
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(credentials.first, credentials.second);
+  const auto *logger = Logger::getInstance();
 
-  return WiFi.waitForConnectResult();
+  auto       sslCert = SSLCert();
+  const auto returnCode =
+      createSelfSignedCert(sslCert, KEYSIZE_1024, "CN=ESP32,O=ase,C=RO");
+
+  if (returnCode)
+  {
+    logger->error("Couldn't create https server");
+  }
+
+  auto serverRunning = true;
+
+  auto server = HTTPSServer(&sslCert);
+  auto node =
+      ResourceNode("/", "GET", [](HTTPRequest *req, HTTPResponse *res) {});
+
+  server.registerNode(&node);
+
+  return server;
 }
 
 static void startWifiAp()
@@ -118,13 +139,34 @@ static void startWifiAp()
   }
 }
 
+static int8_t startWifiStoredCredentials()
+{
+  eeprom::Utils eepromUtils(128);
+  const auto    credentials = eepromUtils.readWifiCredentials();
+
+  const auto *instance = Logger::getInstance();
+  instance->info("SSID: " + credentials.first);
+  instance->info("Pass: " + credentials.second);
+
+  WiFi.disconnect();
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(credentials.first.c_str(), credentials.second.c_str());
+
+  return WiFi.waitForConnectResult();
+}
+
 void NetUtils::startWifi()
 {
-  /* if (startWifiStoredCredentials() == WL_CONNECTED)
+  const auto networkList = createNetworkList();
+
+  if (startWifiStoredCredentials() == WL_CONNECTED)
   {
     Logger::getInstance()->info("WiFi connection has been established!");
-    return;
-  } */
 
-  startWifiAp();
+    const auto httpWebServer = createWebServer(networkList);
+
+    return;
+  }
+
+  // startWifiAp();
 }

@@ -4,7 +4,7 @@
 
 using namespace eeprom;
 
-Utils::Utils(int size)
+Utils::Utils(int size) noexcept
 {
   if (size < 64)
   {
