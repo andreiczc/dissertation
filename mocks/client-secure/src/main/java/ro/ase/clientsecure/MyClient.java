@@ -30,7 +30,7 @@ public class MyClient {
 
 
         logger.info("Connection succeeded");
-        
+
         var message = new MqttMessage("hello".getBytes());
         message.setQos(0);
         client.publish(topic, message);

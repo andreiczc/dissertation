@@ -1,11 +1,9 @@
 #include <Arduino.h>
 #include <PubSubClient.h>
-#include <WiFiClientSecure.h>
 
 #include "net_utils.h"
 
-WiFiClientSecure _;
-PubSubClient     client(_);
+PubSubClient client;
 
 void setup()
 {
@@ -13,6 +11,7 @@ void setup()
   log_i("Program has started!");
 
   NetUtils::startWifi();
+  client = NetUtils::initClient();
 }
 
 void loop()

@@ -10,6 +10,9 @@
 #include <SPIFFS.h>
 #include <SSLCert.hpp>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
+
+static constexpr char *CA_PATH = "/ca.crt";
 
 static String createNetworkList()
 {
@@ -121,6 +124,8 @@ static httpsserver::HTTPSServer createWebServerSecure()
 
 static void startWifiAp()
 {
+  log_i("Attempting to start Soft AP");
+
   const auto networkList = createNetworkList();
 
   WiFi.mode(WIFI_AP);
@@ -145,13 +150,67 @@ static void startWifiAp()
   }
 }
 
+static std::unique_ptr<char[]> read(const String &path)
+{
+  if (!SPIFFS.begin())
+  {
+    log_e("Couldn't mount filesystem");
+  }
+
+  auto       file   = SPIFFS.open(path);
+  const auto size   = file.size();
+  auto       buffer = std::unique_ptr<char[]>(new char[size + 1]);
+
+  file.readBytes(buffer.get(), size);
+  buffer[size] = 0;
+
+  return buffer;
+}
+
 void NetUtils::startWifi()
 {
+  log_i("Attempting to connect to WiFi");
+
   if (WiFi.begin() != WL_CONNECT_FAILED)
   {
     log_i("Connection successful");
+
+    while (WiFi.status() != WL_CONNECTED)
+    {
+      delay(5000);
+    }
+
     return;
   }
 
   startWifiAp();
+}
+
+PubSubClient NetUtils::initClient()
+{
+  log_i("Attempting to create MQTT client");
+
+  static WiFiClientSecure _;
+  const auto              caCertContent = read(CA_PATH);
+  _.setCACert(caCertContent.get());
+
+  log_v("CA Cert is:\n %s", caCertContent.get());
+
+  PubSubClient client(_);
+  IPAddress    serverAddress((byte *)"192.168.26.39");
+  client.setServer(serverAddress, 8883)
+      .setCallback(
+          [](const char *topic, byte *payload, unsigned int length) {
+
+          })
+      .connect("TestClient");
+
+  if (!client.connected())
+  {
+    log_e("Error while connecting to broker.");
+  }
+
+  log_i("Connection to broker succeeded");
+
+  return client;
 }
