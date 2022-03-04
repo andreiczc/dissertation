@@ -1,21 +1,18 @@
-#include <Arduino.h>
-#include <PubSubClient.h>
-
+#include "esp_log.h"
 #include "net_utils.h"
 
-PubSubClient client;
+static constexpr const char *TAG = "MAIN";
 
-void setup()
+extern "C" void app_main()
 {
-  Serial.begin(115200);
-  log_i("Program has started!");
+  ESP_LOGI(TAG, "Starting node...");
 
-  NetUtils::startWifi();
-  client = NetUtils::initClient();
-}
+  const auto netUtils = NetUtils::getInstance();
+  netUtils->startWifi();
 
-void loop()
-{
-  log_i("Looping");
-  delay(30 * 1000);
+  while (true)
+  {
+    ESP_LOGI(TAG, "Looping...");
+    vTaskDelay(5 * 1000 / portTICK_PERIOD_MS);
+  }
 }

@@ -1,216 +1,141 @@
-#include <FreeRTOS.h>
-
 #include "net_utils.h"
 
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-#include <HTTPRequest.hpp>
-#include <HTTPResponse.hpp>
-#include <HTTPSServer.hpp>
-#include <SPIFFS.h>
-#include <SSLCert.hpp>
-#include <WiFi.h>
-#include <WiFiClientSecure.h>
+#include "esp_log.h"
+#include "esp_wifi.h"
+#include "nvs_flash.h"
+#include <cstring>
 
-static constexpr char *CA_PATH = "/ca.crt";
+static constexpr const int MAX_RETRIES        = 10;
+static constexpr const int WIFI_CONNECTED_BIT = 1;
+static constexpr const int WIFI_FAIL_BIT      = 2;
+static int                 numRetries         = 0;
 
-static String createNetworkList()
+const char               *NetUtils::TAG = "NET_UTILS";
+std::shared_ptr<NetUtils> NetUtils::instance =
+    std::shared_ptr<NetUtils>(nullptr);
+
+std::shared_ptr<NetUtils> NetUtils::getInstance()
 {
-  log_i("Will now turn on STATION mode and commence network scan!");
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-
-  delay(3000);
-
-  const auto noNetworks = WiFi.scanNetworks();
-  log_i("Found %d networks", noNetworks);
-
-  String result = "";
-
-  for (auto i = 0; i < noNetworks; ++i)
+  if (NetUtils::instance.get() == nullptr)
   {
-    result += "<option class=\"list-group-item\">";
-    result += WiFi.SSID(i);
-    result += "</option>";
+    NetUtils::instance = std::shared_ptr<NetUtils>(new NetUtils());
   }
 
-  return result;
+  return NetUtils::instance;
 }
 
-static AsyncWebServer createWebServer(const String &networkList)
+NetUtils::NetUtils()
 {
-  if (!SPIFFS.begin())
+  auto ret = nvs_flash_init();
+  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
   {
-    log_e("Couldn't mount filesystem");
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    ret = nvs_flash_init();
   }
+  ESP_ERROR_CHECK(ret);
 
-  auto server = AsyncWebServer(80);
-  server.on("/", HTTP_GET,
-            [&networkList](AsyncWebServerRequest *request)
-            {
-              log_i("Received GET request on /");
-              request->send(SPIFFS, "/index.html", String(), false,
-                            [&networkList](const String &var)
-                            {
-                              if (var == "NETWORKS")
-                              {
-                                return networkList;
-                              }
+  ESP_ERROR_CHECK(esp_netif_init());
+  ESP_ERROR_CHECK(esp_event_loop_create_default());
+  esp_netif_create_default_wifi_sta();
 
-                              return String();
-                            });
-            });
-  server.on("/bootstrap.css", HTTP_GET,
-            [](AsyncWebServerRequest *request)
-            {
-              log_i("Received GET request on /bootstrap.css");
-              request->send(SPIFFS, "/bootstrap.css", "text/css");
-            });
-  server.on("/jquery.js", HTTP_GET,
-            [](AsyncWebServerRequest *request)
-
-            {
-              log_i("Received GET request on /jquery.js");
-              request->send(SPIFFS, "/jquery.js", "text/javascript");
-            });
-  server.on("/popper.js", HTTP_GET,
-            [](AsyncWebServerRequest *request)
-            {
-              log_i("Received GET request on /popper.js");
-              request->send(SPIFFS, "/popper.js", "text/javascript");
-            });
-  server.on("/bootstrap.js", HTTP_GET,
-            [](AsyncWebServerRequest *request)
-            {
-              log_i("Received GET request on /bootstrap.js");
-              request->send(SPIFFS, "/bootstrap.js", "text/javascript");
-            });
-
-  server.begin();
-
-  log_i("Web Server is up!");
-
-  return server;
+  const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 }
 
-static httpsserver::HTTPSServer createWebServerSecure()
+EventGroupHandle_t NetUtils::getWifiEventGroup() const
 {
-  using namespace httpsserver;
-
-  auto sslCert = SSLCert();
-  if (createSelfSignedCert(sslCert, KEYSIZE_1024, "CN=ESP32,O=ase,C=RO"))
-  {
-    log_e("Couldn't create https server");
-  }
-
-  auto server = HTTPSServer(&sslCert, 8081);
-  auto node   = ResourceNode("/credentials", "POST",
-                             [](HTTPRequest *req, HTTPResponse *res)
-                             {
-                             char buffer[256];
-                             req->readChars(buffer, 256);
-                             auto ssid = strtok(buffer, " ");
-                             auto pass = strtok(nullptr, " ");
-
-                             WiFi.mode(WIFI_STA);
-                             WiFi.begin(ssid, pass);
-                             ESP.restart();
-                             });
-
-  server.registerNode(&node);
-
-  return server;
+  return this->wifiEventGroup;
 }
 
-static void startWifiAp()
+void NetUtils::startWiFiSta()
 {
-  log_i("Attempting to start Soft AP");
+  this->wifiEventGroup = xEventGroupCreate();
 
-  const auto networkList = createNetworkList();
+  esp_event_handler_instance_t instanceWifiStart;
+  esp_event_handler_instance_t instanceWifiDisconnected;
+  esp_event_handler_instance_t instanceGotIp;
 
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP("sensor-1f2a46kg", "1f2a46kg");
-  log_i("Soft AP is up!");
+  ESP_ERROR_CHECK(esp_event_handler_instance_register(
+      WIFI_EVENT, WIFI_EVENT_STA_START,
+      [](void *arg, esp_event_base_t event_base, int32_t event_id,
+         void *event_data)
+      {
+        ESP_LOGI(TAG, "WiFi start event received...");
+        esp_wifi_connect();
+      },
+      nullptr, &instanceWifiStart));
 
-  const auto webServer       = createWebServer(networkList);
-  auto       webServerSecure = createWebServerSecure();
+  ESP_ERROR_CHECK(esp_event_handler_instance_register(
+      WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED,
+      [](void *arg, esp_event_base_t event_base, int32_t event_id,
+         void *event_data)
+      {
+        if (numRetries++ < MAX_RETRIES)
+        {
+          ESP_LOGI(TAG, "Trying to reconnect...");
+          esp_wifi_connect();
+        }
+        else
+        {
+          numRetries = 0;
+          ESP_LOGI(TAG, "Maximum number of retries excedeed");
+          xEventGroupSetBits(NetUtils::getInstance()->getWifiEventGroup(),
+                             WIFI_FAIL_BIT);
+        }
+      },
+      nullptr, &instanceWifiDisconnected));
 
-  webServerSecure.start();
-  if (!webServerSecure.isRunning())
+  ESP_ERROR_CHECK(esp_event_handler_instance_register(
+      IP_EVENT, IP_EVENT_STA_GOT_IP,
+      [](void *arg, esp_event_base_t event_base, int32_t event_id,
+         void *event_data)
+      {
+        numRetries        = 0;
+        const auto *event = static_cast<ip_event_got_ip_t *>(event_data);
+        ESP_LOGI(TAG, "Got IP:" IPSTR, IP2STR(&event->ip_info.ip));
+        xEventGroupSetBits(NetUtils::getInstance()->getWifiEventGroup(),
+                           WIFI_CONNECTED_BIT);
+      },
+      nullptr, &instanceGotIp));
+
+  wifi_config_t wifiConfig{};
+  strcpy((char *)wifiConfig.sta.ssid, "WiFi-2.4");
+  strcpy((char *)wifiConfig.sta.password, "180898Delia!");
+  wifiConfig.sta.threshold.authmode = WIFI_AUTH_WPA2_WPA3_PSK;
+  wifiConfig.sta.pmf_cfg.capable    = true;
+  wifiConfig.sta.pmf_cfg.required   = false;
+
+  ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+  ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifiConfig));
+  ESP_ERROR_CHECK(esp_wifi_start());
+
+  ESP_LOGI(TAG, "Waiting for group bits to be set");
+  auto bits = xEventGroupWaitBits(this->wifiEventGroup,
+                                  WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE,
+                                  pdFALSE, portMAX_DELAY);
+
+  if (bits & WIFI_CONNECTED_BIT)
   {
-    log_e("Https server is not up");
+    ESP_LOGI(TAG, "Connected to AP with SSID %s", wifiConfig.sta.ssid);
+  }
+  else
+  {
+    ESP_LOGI(TAG, "Failed to connect... Will switch to AP mode now");
   }
 
-  log_i("Web servers are running");
+  ESP_ERROR_CHECK(esp_event_handler_instance_unregister(
+      WIFI_EVENT, WIFI_EVENT_STA_START, &instanceWifiStart));
+  ESP_ERROR_CHECK(esp_event_handler_instance_unregister(
+      WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &instanceWifiDisconnected));
+  ESP_ERROR_CHECK(esp_event_handler_instance_unregister(
+      IP_EVENT, IP_EVENT_STA_GOT_IP, &instanceGotIp));
 
-  while (true)
-  {
-    webServerSecure.loop();
-    delay(1 * 1000);
-  }
-}
-
-static std::unique_ptr<char[]> read(const String &path)
-{
-  if (!SPIFFS.begin())
-  {
-    log_e("Couldn't mount filesystem");
-  }
-
-  auto       file   = SPIFFS.open(path);
-  const auto size   = file.size();
-  auto       buffer = std::unique_ptr<char[]>(new char[size + 1]);
-
-  file.readBytes(buffer.get(), size);
-  buffer[size] = 0;
-
-  return buffer;
+  vEventGroupDelete(this->wifiEventGroup);
 }
 
 void NetUtils::startWifi()
 {
-  log_i("Attempting to connect to WiFi");
+  ESP_LOGI(TAG, "Attempting to connect to WiFi...");
 
-  if (WiFi.begin() != WL_CONNECT_FAILED)
-  {
-    log_i("Connection successful");
-
-    while (WiFi.status() != WL_CONNECTED)
-    {
-      delay(5000);
-    }
-
-    return;
-  }
-
-  startWifiAp();
-}
-
-PubSubClient NetUtils::initClient()
-{
-  log_i("Attempting to create MQTT client");
-
-  static WiFiClientSecure _;
-  const auto              caCertContent = read(CA_PATH);
-  _.setCACert(caCertContent.get());
-
-  log_v("CA Cert is:\n %s", caCertContent.get());
-
-  PubSubClient client(_);
-  IPAddress    serverAddress((byte *)"192.168.26.39");
-  client.setServer(serverAddress, 8883)
-      .setCallback(
-          [](const char *topic, byte *payload, unsigned int length) {
-
-          })
-      .connect("TestClient");
-
-  if (!client.connected())
-  {
-    log_e("Error while connecting to broker.");
-  }
-
-  log_i("Connection to broker succeeded");
-
-  return client;
+  startWiFiSta();
 }
