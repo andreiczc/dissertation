@@ -2,7 +2,6 @@
 
 #include "esp_log.h"
 #include "esp_wifi.h"
-#include "nvs_flash.h"
 #include <cstring>
 
 static constexpr const int MAX_RETRIES        = 10;
@@ -26,18 +25,8 @@ std::shared_ptr<NetUtils> NetUtils::getInstance()
 
 NetUtils::NetUtils()
 {
-  auto ret = nvs_flash_init();
-  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
-  {
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    ret = nvs_flash_init();
-  }
-  ESP_ERROR_CHECK(ret);
-
   ESP_ERROR_CHECK(esp_netif_init());
-  ESP_ERROR_CHECK(esp_event_loop_create_default());
   esp_netif_create_default_wifi_sta();
-
   const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
   ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 }
@@ -121,6 +110,7 @@ void NetUtils::startWiFiSta()
   else
   {
     ESP_LOGI(TAG, "Failed to connect... Will switch to AP mode now");
+    // TODO create AP mode implementation
   }
 
   ESP_ERROR_CHECK(esp_event_handler_instance_unregister(
