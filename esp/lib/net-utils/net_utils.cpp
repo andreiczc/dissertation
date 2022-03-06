@@ -1,4 +1,5 @@
 #include "net_utils.h"
+#include "spiffs_utils.h"
 
 #include <cstring>
 
@@ -6,9 +7,7 @@
 #include "esp_tls.h"
 #include "esp_wifi.h"
 
-extern "C" const uint8_t caPemStart[] asm("_binary_ca_pem_start");
-extern "C" const uint8_t caPemEnd[] asm("_binary_ca_pem_end");
-
+static constexpr char     *PATH_CA_CERT       = "/ca.pem";
 static constexpr const int MAX_RETRIES        = 10;
 static constexpr const int WIFI_CONNECTED_BIT = 1;
 static constexpr const int WIFI_FAIL_BIT      = 2;
@@ -205,9 +204,12 @@ esp_mqtt_client_handle_t NetUtils::initMqttConnection()
 {
   ESP_LOGI(TAG, "Initializing mqtt connection...");
 
+  const auto spiffsUtils = SpiffsUtils::getInstance();
+  const auto caCert      = spiffsUtils->readText(PATH_CA_CERT);
+
   esp_mqtt_client_config_t mqttCfg{};
   mqttCfg.uri      = "mqtts://172.23.109.3:8883";
-  mqttCfg.cert_pem = reinterpret_cast<const char *>(caPemStart);
+  mqttCfg.cert_pem = caCert.c_str();
 
   auto client = esp_mqtt_client_init(&mqttCfg);
   if (!client)
