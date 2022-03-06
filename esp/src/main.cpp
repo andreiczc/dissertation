@@ -27,6 +27,8 @@ extern "C" void app_main()
   const auto netUtils = NetUtils::getInstance();
   netUtils->startWifi();
 
+  const auto client = netUtils->initMqttConnection();
+
   while (true)
   {
     ESP_LOGI(TAG, "Looping...");

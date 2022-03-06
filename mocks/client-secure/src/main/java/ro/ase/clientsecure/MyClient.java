@@ -12,7 +12,7 @@ public class MyClient {
 
     private static final Logger logger = LoggerFactory.getLogger(MyClient.class);
 
-    private static final String broker = "ssl://192.168.26.39:8883";
+    private static final String broker = "ssl://172.23.109.3:8883";
     private static final String clientId = "TestClient";
     private static final String topic = "TestTopic";
 

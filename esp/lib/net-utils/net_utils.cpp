@@ -1,8 +1,13 @@
 #include "net_utils.h"
 
-#include "esp_log.h"
-#include "esp_wifi.h"
 #include <cstring>
+
+#include "esp_log.h"
+#include "esp_tls.h"
+#include "esp_wifi.h"
+
+extern "C" const uint8_t caPemStart[] asm("_binary_ca_pem_start");
+extern "C" const uint8_t caPemEnd[] asm("_binary_ca_pem_end");
 
 static constexpr const int MAX_RETRIES        = 10;
 static constexpr const int WIFI_CONNECTED_BIT = 1;
@@ -128,4 +133,92 @@ void NetUtils::startWifi()
   ESP_LOGI(TAG, "Attempting to connect to WiFi...");
 
   startWiFiSta();
+}
+
+static void registerMqttHandlers(esp_mqtt_client_handle_t client)
+{
+  esp_mqtt_client_register_event(
+      client, MQTT_EVENT_CONNECTED,
+      [](void *handlerArgs, esp_event_base_t base, int32_t eventId,
+         void *eventData) {
+        ESP_LOGI("MQTT_INFO", "Connection to broker established successfully");
+      },
+      client);
+  esp_mqtt_client_register_event(
+      client, MQTT_EVENT_DISCONNECTED,
+      [](void *handlerArgs, esp_event_base_t base, int32_t eventId,
+         void *eventData)
+      {
+        ESP_LOGI("MQTT_INFO",
+                 "Disconnected from broker... waiting 30 seconds before "
+                 "attempting to reinitialize client connection");
+
+        vTaskDelay(30000 / portTICK_PERIOD_MS);
+        esp_mqtt_client_start(((esp_mqtt_event_handle_t)eventData)->client);
+      },
+      client);
+  esp_mqtt_client_register_event(
+      client, MQTT_EVENT_PUBLISHED,
+      [](void *handlerArgs, esp_event_base_t base, int32_t eventId,
+         void *eventData)
+      {
+        ESP_LOGI("MQTT_INFO", "Message %d has been successfully published",
+                 ((esp_mqtt_event_handle_t)eventData)->msg_id);
+      },
+      client);
+  esp_mqtt_client_register_event(
+      client, MQTT_EVENT_ERROR,
+      [](void *handlerArgs, esp_event_base_t base, int32_t eventId,
+         void *eventData)
+      {
+        const auto *event =
+            reinterpret_cast<esp_mqtt_event_handle_t>(eventData);
+        static const auto *TAG = "MQTT_INFO";
+
+        ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
+        if (event->error_handle->error_type == MQTT_ERROR_TYPE_TCP_TRANSPORT)
+        {
+          ESP_LOGI(TAG, "Last error code reported from esp-tls: 0x%x",
+                   event->error_handle->esp_tls_last_esp_err);
+          ESP_LOGI(TAG, "Last tls stack error number: 0x%x",
+                   event->error_handle->esp_tls_stack_err);
+          ESP_LOGI(TAG, "Last captured errno : %d (%s)",
+                   event->error_handle->esp_transport_sock_errno,
+                   strerror(event->error_handle->esp_transport_sock_errno));
+        }
+        else if (event->error_handle->error_type ==
+                 MQTT_ERROR_TYPE_CONNECTION_REFUSED)
+        {
+          ESP_LOGI(TAG, "Connection refused error: 0x%x",
+                   event->error_handle->connect_return_code);
+        }
+        else
+        {
+          ESP_LOGW(TAG, "Unknown error type: 0x%x",
+                   event->error_handle->error_type);
+        }
+      },
+      client);
+}
+
+esp_mqtt_client_handle_t NetUtils::initMqttConnection()
+{
+  ESP_LOGI(TAG, "Initializing mqtt connection...");
+
+  esp_mqtt_client_config_t mqttCfg{};
+  mqttCfg.uri      = "mqtts://172.23.109.3:8883";
+  mqttCfg.cert_pem = reinterpret_cast<const char *>(caPemStart);
+
+  auto client = esp_mqtt_client_init(&mqttCfg);
+  if (!client)
+  {
+    ESP_LOGE(TAG, "Client not acquired... Will restart in 5 seconds");
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
+    esp_restart();
+  }
+
+  registerMqttHandlers(client);
+  ESP_ERROR_CHECK(esp_mqtt_client_start(client));
+
+  return client;
 }
