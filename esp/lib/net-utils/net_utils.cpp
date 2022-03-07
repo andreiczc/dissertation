@@ -7,7 +7,7 @@
 #include "esp_tls.h"
 #include "esp_wifi.h"
 
-static constexpr char     *PATH_CA_CERT       = "/ca.pem";
+static constexpr char     *PATH_CA_CERT       = "/spiffs/ca.pem";
 static constexpr const int MAX_RETRIES        = 10;
 static constexpr const int WIFI_CONNECTED_BIT = 1;
 static constexpr const int WIFI_FAIL_BIT      = 2;

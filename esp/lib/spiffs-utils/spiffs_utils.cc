@@ -27,7 +27,7 @@ std::string SpiffsUtils::readText(const std::string &path)
 
   if (!file.get())
   {
-    ESP_LOGE(TAG, "Couldn't read from %d", path);
+    ESP_LOGE(TAG, "Couldn't read from %s", path.c_str());
 
     return "";
   }
@@ -38,6 +38,7 @@ std::string SpiffsUtils::readText(const std::string &path)
 
   std::unique_ptr<char[]> buffer(new char[fileSize + 1]);
   fread(buffer.get(), sizeof(char), fileSize, file.get());
+  buffer[fileSize] = 0;
 
   return std::string(buffer.get());
 }
@@ -47,7 +48,7 @@ SpiffsUtils::SpiffsUtils()
   ESP_LOGI(TAG, "Initializing SPIFF");
 
   esp_vfs_spiffs_conf_t config{};
-  config.base_path              = "/";
+  config.base_path              = "/spiffs";
   config.partition_label        = nullptr;
   config.max_files              = 3;
   config.format_if_mount_failed = true;
