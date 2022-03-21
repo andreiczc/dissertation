@@ -14,3 +14,8 @@ what can not be considered secure:
 
 - html data
 - ca certificate with which the server cert has been signed
+
+<https://docs.oracle.com/en-us/iaas/developer-tutorials/tutorials/apache-on-ubuntu/01oci-ubuntu-apache-summary.htm> -> configuring iptable
+<https://docs.oracle.com/en-us/iaas/Content/Network/Concepts/securityrules.htm#stateful>
+<https://blogs.oracle.com/developers/post/installing-securing-mosquitto-for-encrypted-mqtt-messaging-in-the-oracle-cloud> -> somehow useful for configuring mqtt
+<http://www.steves-internet-guide.com/install-mosquitto-linux/> -> installing mosquitto on linux

@@ -12,28 +12,27 @@ public class MyClient {
 
     private static final Logger logger = LoggerFactory.getLogger(MyClient.class);
 
-    private static final String broker = "ssl://172.23.109.3:8883";
+    private static final String broker = "ssl://130.162.253.10:8883";
     private static final String clientId = "TestClient";
     private static final String topic = "TestTopic";
 
-    private final MqttClientPersistence persistence;
-    private final MqttClient client;
+    private MqttClientPersistence persistence;
+    private MqttClient client;
 
     @Autowired
-    public MyClient() throws MqttException {
-        this.persistence = new MemoryPersistence();
-
-        client = new MqttClient(broker, clientId, persistence);
-        var connOpts = new MqttConnectOptions();
-        connOpts.setCleanSession(true);
-        client.connect(connOpts);
-
-
-        logger.info("Connection succeeded");
-
-        var message = new MqttMessage("hello".getBytes());
-        message.setQos(0);
-        client.publish(topic, message);
+    public MyClient() {
+        try {
+            this.persistence = new MemoryPersistence();
+            client = new MqttClient(broker, clientId, persistence);
+            var connOpts = new MqttConnectOptions();
+            connOpts.setCleanSession(true);
+            client.connect(connOpts);
+            var message = new MqttMessage("hello".getBytes());
+            message.setQos(0);
+            client.publish(topic, message);
+        } catch (MqttException e) {
+            e.printStackTrace();
+        }
     }
 
 }

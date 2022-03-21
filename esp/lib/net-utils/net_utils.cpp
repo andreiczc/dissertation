@@ -208,7 +208,7 @@ esp_mqtt_client_handle_t NetUtils::initMqttConnection()
   const auto caCert      = spiffsUtils->readText(PATH_CA_CERT);
 
   esp_mqtt_client_config_t mqttCfg{};
-  mqttCfg.uri      = "mqtts://172.23.109.3:8883";
+  mqttCfg.uri      = "mqtts://130.162.253.10:8883";
   mqttCfg.cert_pem = caCert.c_str();
 
   auto client = esp_mqtt_client_init(&mqttCfg);
