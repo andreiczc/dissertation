@@ -5,10 +5,11 @@
 
 static constexpr const char *TAG = "MAIN";
 
-static void init() {
+static void init()
+{
   auto ret = nvs_flash_init();
-  if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
-      ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+  {
     ESP_ERROR_CHECK(nvs_flash_erase());
     ret = nvs_flash_init();
   }
@@ -17,7 +18,8 @@ static void init() {
   ESP_ERROR_CHECK(esp_event_loop_create_default());
 }
 
-extern "C" void app_main() {
+extern "C" void app_main()
+{
   ESP_LOGI(TAG, "Starting node...");
   init();
   ESP_LOGI(TAG, "Init complete");
@@ -27,7 +29,8 @@ extern "C" void app_main() {
 
   const auto client = netUtils->initMqttConnection();
 
-  while (true) {
+  while (true)
+  {
     ESP_LOGI(TAG, "Looping...");
     vTaskDelay(5 * 1000 / portTICK_PERIOD_MS);
   }
