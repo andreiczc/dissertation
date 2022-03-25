@@ -1,6 +1,7 @@
 package ro.sec.coap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.eclipse.californium.core.CoapResource;
 import org.eclipse.californium.core.coap.MediaTypeRegistry;
 import org.eclipse.californium.core.server.resources.CoapExchange;
@@ -14,10 +15,8 @@ import ro.sec.coap.repo.SecureStoreInMemory;
 import ro.sec.coap.web.AttestationServer;
 import ro.sec.crypto.CryptoUtils;
 
-import javax.crypto.Cipher;
 import java.io.FileInputStream;
 import java.net.InetAddress;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
@@ -26,6 +25,7 @@ import java.util.*;
 import static org.eclipse.californium.core.coap.CoAP.ResponseCode.BAD_REQUEST;
 import static org.eclipse.californium.core.coap.CoAP.ResponseCode.VALID;
 
+// TODO add certificate validation
 public class Application {
 
     private static final Logger log = LoggerFactory.getLogger(Application.class);
@@ -97,10 +97,13 @@ public class Application {
                     log.info("Signature from {} verifies", clientAddress);
                     exchange.accept();
 
-                    var ownKeyPair = CryptoUtils.generateEcKeyPair();
+                    var thirdPartyPublicKey = (BCECPublicKey) CryptoUtils.readPublicKey(clientPayload.getPublicParams());
+                    var ownKeyPair = CryptoUtils.generateEcKeyPair(thirdPartyPublicKey.getParams());
+
                     var publicKeyBytes = ownKeyPair.getPublic().getEncoded();
                     var signatureOfPublicKey = CryptoUtils
                             .signEcdsa(publicKeyBytes, privateKey);
+
                     var testBytes = CryptoUtils.generateRandomSequence(TEST_BYTES_LENGTH);
                     testBytesMap.put(clientAddress, testBytes);
 
@@ -111,10 +114,8 @@ public class Application {
                     var serverPayloadJson = new ObjectMapper()
                             .writeValueAsString(serverPayload);
 
-                    var thirdPartyPublicKey = CryptoUtils.readPublicKey(clientPayload.getPublicParams());
                     var sharedSecret = CryptoUtils
-                            .generateSharedSecret(privateKey, thirdPartyPublicKey);
-
+                            .generateSharedSecret(ownKeyPair.getPrivate(), thirdPartyPublicKey);
                     log.info("Shared secret for {} was generated successfully", clientAddress);
                     secretStore.store(clientAddress, sharedSecret);
 
@@ -134,14 +135,12 @@ public class Application {
                     log.info(LOG_MSG_FORMAT, KEY_EXCHANGE_RSC, clientAddress, CryptoUtils.toHex(exchange.getRequestPayload()));
 
                     var payload = exchange.getRequestPayload();
-                    if (payload == null || payload.length < TEST_BYTES_LENGTH) {
-                        exchange.respond(BAD_REQUEST, "Test wasn't correct length!");
-                    }
-
+                    var iv = Arrays.copyOfRange(payload, 0, 16);
+                    var ciphertext = Arrays.copyOfRange(payload, 16, payload.length);
                     var sessionKey = secretStore.retrieve(clientAddress);
 
                     var secretBytes = testBytesMap.get(clientAddress);
-                    var decrypted = CryptoUtils.decryptAes(payload, sessionKey);
+                    var decrypted = CryptoUtils.decryptAes(ciphertext, iv, sessionKey);
 
                     if(!Arrays.equals(secretBytes, decrypted)) {
                         log.info("Payload from {} wasn't correct", clientAddress);
@@ -151,6 +150,7 @@ public class Application {
                     }
 
                     pskStore.store(clientAddress, sessionKey);
+                    log.info("Session with {} has been established successfully", clientAddress);
 
                     exchange.respond(VALID);
                 } catch (Exception e) {

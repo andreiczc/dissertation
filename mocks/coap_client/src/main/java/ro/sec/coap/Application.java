@@ -1,8 +1,8 @@
 package ro.sec.coap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.bouncycastle.util.Arrays;
 import org.eclipse.californium.core.CoapClient;
-import org.eclipse.californium.core.coap.CoAP;
 import org.eclipse.californium.core.coap.MediaTypeRegistry;
 import org.eclipse.californium.core.config.CoapConfig;
 import org.eclipse.californium.elements.config.UdpConfig;
@@ -64,15 +64,18 @@ public class Application {
         log.info("Server signature verifies");
         var serverPubKey = CryptoUtils.readPublicKey(serverPayload.getPublicParams());
         var sharedSecret = CryptoUtils.generateSharedSecret(
-                privateKey,
+                ownKeyPair.getPrivate(),
                 serverPubKey
         );
 
         var plaintext = serverPayload.getTest();
-        var ciphertext = CryptoUtils.encryptAes(plaintext, sharedSecret);
+        var iv = CryptoUtils.generateRandomSequence(16);
+        var ciphertext = CryptoUtils.encryptAes(plaintext, iv, sharedSecret);
+
+        var finishedPayload = Arrays.concatenate(iv, ciphertext);
 
         client.setURI(SERVER_URL + "clientFinished");
-        var responseFinished = client.post(ciphertext, MediaTypeRegistry.APPLICATION_OCTET_STREAM);
+        var responseFinished = client.post(finishedPayload, MediaTypeRegistry.APPLICATION_OCTET_STREAM);
 
         if(responseFinished.getCode() != VALID) {
             log.error("Something went wrong");

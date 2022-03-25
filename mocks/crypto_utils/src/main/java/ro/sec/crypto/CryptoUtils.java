@@ -3,6 +3,7 @@ package ro.sec.crypto;
 import org.bouncycastle.jce.ECNamedCurveTable;
 
 import javax.crypto.*;
+import javax.crypto.spec.IvParameterSpec;
 import java.io.ByteArrayInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,6 +12,7 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.spec.ECParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
@@ -35,26 +37,30 @@ public class CryptoUtils {
         return result;
     }
 
-    public static byte[] encryptAes(byte[] plaintext, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
-        if (plaintext == null || secretKey == null) {
+    public static byte[] encryptAes(byte[] plaintext, byte[] iv, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
+        if (plaintext == null || secretKey == null || iv == null) {
             throw new RuntimeException(
-                    String.format("One of the args was null. Plaintext: %b, SecretKey: %b", plaintext == null, secretKey == null));
+                    String.format("One of the args was null. Plaintext: %b, IV: %b, SecretKey: %b",
+                            plaintext == null, iv == null, secretKey == null));
         }
 
         var cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        cipher.init(Cipher.ENCRYPT_MODE,
+                secretKey,
+                new IvParameterSpec(iv));
 
         return cipher.doFinal(plaintext);
     }
 
-    public static byte[] decryptAes(byte[] cipherText, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
-        if (cipherText == null || secretKey == null) {
+    public static byte[] decryptAes(byte[] cipherText, byte[] iv, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
+        if (cipherText == null || secretKey == null || iv == null) {
             throw new RuntimeException(
-                    String.format("One of the args was null. Ciphertext: %b, SecretKey: %b", cipherText == null, secretKey == null));
+                    String.format("One of the args was null. Ciphertext: %b, IV: %b, SecretKey: %b",
+                            cipherText == null, iv == null, secretKey == null));
         }
 
         var cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.DECRYPT_MODE, secretKey);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(iv));
 
         return cipher.doFinal(cipherText);
     }
@@ -134,6 +140,13 @@ public class CryptoUtils {
     public static KeyPair generateEcKeyPair() throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
         var keyPairGenerator = KeyPairGenerator.getInstance("ECDH", BOUNCY_CASTLE_PROVIDER);
         keyPairGenerator.initialize(ECNamedCurveTable.getParameterSpec("brainpoolp256r1"));
+
+        return keyPairGenerator.generateKeyPair();
+    }
+
+    public static KeyPair generateEcKeyPair(ECParameterSpec spec) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
+        var keyPairGenerator = KeyPairGenerator.getInstance("ECDH", BOUNCY_CASTLE_PROVIDER);
+        keyPairGenerator.initialize(spec);
 
         return keyPairGenerator.generateKeyPair();
     }
