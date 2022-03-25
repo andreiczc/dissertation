@@ -103,7 +103,12 @@ public class CryptoUtils {
 
     public static PrivateKey readPrivateKey(Path path) throws Exception {
         var content = Files.readAllBytes(path);
-        content = new String(content)
+
+        return readPrivateKey(content);
+    }
+
+    public static PrivateKey readPrivateKey(byte[] input) throws Exception {
+        var content = new String(input)
                 .replace("-----BEGIN PRIVATE KEY-----", "")
                 .replaceAll("\n", "")
                 .replace("-----END PRIVATE KEY-----", "")

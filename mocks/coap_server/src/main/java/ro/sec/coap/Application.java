@@ -15,9 +15,8 @@ import ro.sec.coap.repo.SecureStoreInMemory;
 import ro.sec.coap.web.AttestationServer;
 import ro.sec.crypto.CryptoUtils;
 
-import java.io.FileInputStream;
 import java.net.InetAddress;
-import java.nio.file.Path;
+import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.util.*;
@@ -36,10 +35,20 @@ public class Application {
     private static final String LOG_MSG_FORMAT = "{} from {}. Payload: {}";
 
     public static void main(String[] args) throws Exception {
-        var ownCertificate = CertificateFactory
-                .getInstance("X.509")
-                .generateCertificate(new FileInputStream("src/main/resources/server.crt"));
-        var privateKey = CryptoUtils.readPrivateKey(Path.of("src/main/resources/server.key"));
+        Certificate tempOwnCertificate = null;
+        PrivateKey tempPrivateKey = null;
+
+        try (var ownCertificateInputStream = Application.class.getClassLoader().getResourceAsStream("server.crt");
+                var privateKeyInputStream = Application.class.getClassLoader().getResourceAsStream("server.key")) {
+            tempOwnCertificate = CertificateFactory
+                    .getInstance("X.509")
+                    .generateCertificate(ownCertificateInputStream);
+            var privateKeyBytes = privateKeyInputStream.readAllBytes();
+            tempPrivateKey = CryptoUtils.readPrivateKey(privateKeyBytes);
+        }
+
+        var ownCertificate = tempOwnCertificate;
+        var privateKey = tempPrivateKey;
 
         var certificateMap = new HashMap<InetAddress, Certificate>();
         var testBytesMap = new HashMap<InetAddress, byte[]>();
