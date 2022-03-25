@@ -1,4 +1,4 @@
-package ro.sec.coap;
+package ro.sec.coap.web;
 
 import org.eclipse.californium.core.CoapServer;
 import org.eclipse.californium.core.config.CoapConfig;

@@ -8,15 +8,15 @@
         </encoder>
     </appender>
 
-    <logger name="org.eclipse.californium.elements.UDPConnector" level="DEBUG" additivity="false">
+    <logger name="org.eclipse.californium.elements.UDPConnector" level="INFO" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
 
-    <logger name="org.eclipse.californium.elements.UdpMulticastConnector" level="DEBUG" additivity="false">
+    <logger name="org.eclipse.californium.elements.UdpMulticastConnector" level="INFO" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
 
-    <logger name="ch.qos.logback" level="ERROR" additivity="false">
+    <logger name="ch.qos.logback" level="INFO" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
 

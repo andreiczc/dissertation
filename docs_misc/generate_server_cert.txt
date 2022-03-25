@@ -5,3 +5,7 @@ openssl x509 -req -in server.csr -CA ../ca/ca.crt -CAkey ../ca/ca.key -CAcreates
 openssl ecparam -name brainpoolP256r1 -genkey -noout -out server.key
 openssl req -new -x509 -key server.key -out server.cert -days 360
 openssl pkcs8 -topk8 -nocrypt -in server.key -out server8.key
+
+openssl ecparam -name brainpoolP256r1 -genkey -noout -out client.key
+openssl req -new -x509 -key client.key -out client.cert -days 360
+openssl pkcs8 -topk8 -nocrypt -in client.key -out client8.key

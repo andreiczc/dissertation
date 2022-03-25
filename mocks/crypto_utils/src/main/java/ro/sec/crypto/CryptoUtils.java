@@ -1,13 +1,9 @@
 package ro.sec.crypto;
 
 import org.bouncycastle.jce.ECNamedCurveTable;
-import org.bouncycastle.util.io.pem.PemObject;
-import org.bouncycastle.util.io.pem.PemReader;
 
-import javax.crypto.KeyAgreement;
-import javax.crypto.SecretKey;
+import javax.crypto.*;
 import java.io.ByteArrayInputStream;
-import java.io.FileReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.*;
@@ -16,6 +12,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
 public class CryptoUtils {
@@ -25,6 +22,42 @@ public class CryptoUtils {
     }
 
     private static final String BOUNCY_CASTLE_PROVIDER = "BC";
+
+    public static byte[] generateRandomSequence(int length) {
+        if (length <= 0) {
+            throw new RuntimeException("Bad value for input parameter length");
+        }
+
+        var result = new byte[length];
+        var secureRandom = new SecureRandom();
+        secureRandom.nextBytes(result);
+
+        return result;
+    }
+
+    public static byte[] encryptAes(byte[] plaintext, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+        if (plaintext == null || secretKey == null) {
+            throw new RuntimeException(
+                    String.format("One of the args was null. Plaintext: %b, SecretKey: %b", plaintext == null, secretKey == null));
+        }
+
+        var cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+
+        return cipher.doFinal(plaintext);
+    }
+
+    public static byte[] decryptAes(byte[] cipherText, SecretKey secretKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+        if (cipherText == null || secretKey == null) {
+            throw new RuntimeException(
+                    String.format("One of the args was null. Ciphertext: %b, SecretKey: %b", cipherText == null, secretKey == null));
+        }
+
+        var cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        cipher.init(Cipher.DECRYPT_MODE, secretKey);
+
+        return cipher.doFinal(cipherText);
+    }
 
     public static String toHex(byte[] input) {
         var formatter = new StringBuilder();
@@ -65,15 +98,22 @@ public class CryptoUtils {
     public static PrivateKey readPrivateKey(Path path) throws Exception {
         var content = Files.readAllBytes(path);
         content = new String(content)
-                        .replace("-----BEGIN PRIVATE KEY-----", "")
-                        .replaceAll("\n", "")
-                        .replace("-----END PRIVATE KEY-----", "")
-                        .getBytes();
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replaceAll("\n", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .getBytes();
         content = Base64.getDecoder().decode(content);
 
         var privateKey = new PKCS8EncodedKeySpec(content);
 
         return KeyFactory.getInstance("ECDSA", BOUNCY_CASTLE_PROVIDER).generatePrivate(privateKey);
+    }
+
+    public static PublicKey readPublicKey(byte[] content) throws Exception {
+        var keyFactory = KeyFactory.getInstance("ECDH", BOUNCY_CASTLE_PROVIDER);
+        var keySpec = new X509EncodedKeySpec(content);
+
+        return keyFactory.generatePublic(keySpec);
     }
 
     public static Certificate readCertificate(byte[] certificate) throws CertificateException {
