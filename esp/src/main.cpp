@@ -32,6 +32,10 @@ extern "C" void app_main()
   while (true)
   {
     ESP_LOGI(TAG, "Looping...");
+
+    const auto *message = "test1";
+    esp_mqtt_client_publish(client, "topic1", message, strlen(message), 0, 0);
+
     vTaskDelay(5 * 1000 / portTICK_PERIOD_MS);
   }
 }

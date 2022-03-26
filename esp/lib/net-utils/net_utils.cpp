@@ -1,5 +1,4 @@
 #include "net_utils.h"
-#include "spiffs_utils.h"
 
 #include <cstring>
 
@@ -204,9 +203,9 @@ esp_mqtt_client_handle_t NetUtils::initMqttConnection()
   ESP_LOGI(TAG, "Initializing mqtt connection...");
 
   // TODO move to key agreement
-  const auto *key = "abc123";
-
-  psk_hint_key_t pskConf{(uint8_t *)key, (size_t)strlen(key), "hint"};
+  static const uint8_t  key[3] = {0xAB, 0xC1, 0x23}; // avoid deallocation
+  static const auto    *hint   = "node1";
+  static psk_hint_key_t pskConf{key, 3, hint};
 
   esp_mqtt_client_config_t mqttCfg{};
   mqttCfg.uri          = "mqtts://130.162.253.10:8883";
