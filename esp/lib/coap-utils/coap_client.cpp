@@ -13,7 +13,7 @@
 #include "esp_log.h"
 #include "esp_wifi.h"
 
-static const auto *TAG = "MQTT_CLIENT";
+static const auto *TAG = "COAP_CLIENT";
 
 static uint8_t *payload = nullptr;
 static size_t   payloadLength;
@@ -40,8 +40,9 @@ static void coapMessageHandler(struct coap_context_t *context,
                                coap_session_t *session, coap_pdu_t *sent,
                                coap_pdu_t *received, const coap_tid_t id)
 {
-  ESP_LOGI(TAG, "Message with token id %d has been received", received->tid);
-  if (COAP_RESPONSE_CLASS(received->code) != COAP_RESPONSE_304)
+  ESP_LOGI(TAG, "Message with token id %d has been received with code %d",
+           received->tid, received->code);
+  if (COAP_RESPONSE_CODE(received->code) != COAP_RESPONSE_304)
   {
     handleFailure("The message doesn't have VALID response code");
   }
@@ -63,6 +64,8 @@ static int resolve_address(const char *host, const char *service,
   hints.ai_family   = AF_UNSPEC;
 
   error = getaddrinfo(host, service, &hints, &res);
+
+  ESP_LOGI(TAG, "Returned error code for %s:%s is %d", host, service, error);
 
   if (error)
   {
@@ -90,14 +93,14 @@ finish:
 
 CoapClient::CoapClient(const std::string &serverUrl, int port)
 {
+  ESP_LOGI(TAG, "Creating a COAP client");
+
+  coap_startup();
+
   coap_set_log_level(LOG_INFO);
 
   coap_address_t dst;
-
-  if (resolve_address(serverUrl.c_str(), std::to_string(port).c_str(), &dst))
-  {
-    handleFailure("Couldn't get address info!");
-  }
+  resolve_address("192.168.0.180", "5683", &dst);
 
   this->context = coap_new_context(nullptr);
   if (!this->context || !(this->session = coap_new_client_session(
@@ -118,6 +121,8 @@ CoapClient::~CoapClient()
 
 uint8_t *CoapClient::doGet(size_t &lengthReceived, const std::string &uriPath)
 {
+  ESP_LOGI(TAG, "Attempting to GET %s", uriPath.c_str());
+
   auto *pdu = coap_pdu_init(COAP_MESSAGE_CON, COAP_REQUEST_GET,
                             coap_new_message_id(this->session),
                             coap_session_max_pdu_size(this->session));
@@ -137,6 +142,8 @@ uint8_t *CoapClient::doGet(size_t &lengthReceived, const std::string &uriPath)
   auto retryCounter = 12;
   while (!payload || !retryCounter)
   {
+    ESP_LOGI(TAG, "Waiting for GET response from %s", uriPath.c_str());
+    coap_run_once(this->context, 5000);
     vTaskDelay(5000 / portTICK_PERIOD_MS);
     --retryCounter;
   }
@@ -149,6 +156,8 @@ uint8_t *CoapClient::doGet(size_t &lengthReceived, const std::string &uriPath)
 uint8_t *CoapClient::doPost(const std::string &body, size_t &lengthReceived,
                             const std::string &uriPath)
 {
+  ESP_LOGI(TAG, "Attempting to POST %s", uriPath.c_str());
+
   auto *pdu = coap_pdu_init(COAP_MESSAGE_CON, COAP_REQUEST_POST,
                             coap_new_message_id(this->session),
                             coap_session_max_pdu_size(this->session));
@@ -169,6 +178,7 @@ uint8_t *CoapClient::doPost(const std::string &body, size_t &lengthReceived,
   auto retryCounter = 12;
   while (!payload || !retryCounter)
   {
+    ESP_LOGI(TAG, "Waiting for POST response from %s", uriPath.c_str());
     vTaskDelay(5000 / portTICK_PERIOD_MS);
     --retryCounter;
   }

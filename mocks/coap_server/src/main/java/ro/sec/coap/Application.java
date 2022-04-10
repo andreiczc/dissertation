@@ -30,6 +30,7 @@ public class Application {
     private static final Logger log = LoggerFactory.getLogger(Application.class);
     private static final int TEST_BYTES_LENGTH = 16;
     private static final String CLIENT_HELLO_RSC = "clientHello";
+    private static final String CLIENT_TEST = "test";
     private static final String KEY_EXCHANGE_RSC = "keyExchange";
     private static final String CLIENT_FINISHED_RSC = "clientFinished";
     private static final String LOG_MSG_FORMAT = "{} from {}. Payload: {}";
@@ -56,6 +57,15 @@ public class Application {
         SecureStore pskStore = new SecureStoreInMemory();
 
         var resources = new ArrayList<Resource>();
+
+        resources.add(new CoapResource(CLIENT_TEST) {
+            @Override
+            public void handleGET(CoapExchange exchange) {
+                log.info("Received test from " + exchange.getSourceAddress());
+
+                exchange.respond(VALID, "Hello from server");
+            }
+        });
 
         resources.add(new CoapResource(CLIENT_HELLO_RSC) {
             @Override

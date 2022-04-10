@@ -4,7 +4,6 @@
 #include "net_utils.h"
 #include "nvs_flash.h"
 
-
 static constexpr const char *TAG = "MAIN";
 
 static void init()
@@ -29,15 +28,12 @@ extern "C" void app_main()
   const auto netUtils = NetUtils::getInstance();
   netUtils->startWifi();
 
-  const auto client = netUtils->initMqttConnection();
+  // const auto client = netUtils->initMqttConnection();
+  CoapClient client("192.168.0.180", 5683);
 
-  while (true)
-  {
-    ESP_LOGI(TAG, "Looping...");
+  size_t payloadLength;
+  auto  *payload = client.doGet(payloadLength, "test");
 
-    const auto *message = "test1";
-    esp_mqtt_client_publish(client, "topic1", message, strlen(message), 0, 0);
-
-    vTaskDelay(5 * 1000 / portTICK_PERIOD_MS);
-  }
+  ESP_LOGI(TAG, "Received from coap server %d bytes: %d", payloadLength,
+           payload[1]);
 }
