@@ -23,7 +23,6 @@ private:
 
   EventGroupHandle_t wifiEventGroup;
 
-  static const char               *TAG;
   static std::shared_ptr<NetUtils> instance;
 
   void startWiFiSta();

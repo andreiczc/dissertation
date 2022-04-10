@@ -11,7 +11,7 @@ static constexpr const int WIFI_CONNECTED_BIT = 1;
 static constexpr const int WIFI_FAIL_BIT      = 2;
 static int                 numRetries         = 0;
 
-const char               *NetUtils::TAG = "NET_UTILS";
+static const auto        *TAG = "NET_UTILS";
 std::shared_ptr<NetUtils> NetUtils::instance =
     std::shared_ptr<NetUtils>(nullptr);
 
@@ -132,6 +132,15 @@ void NetUtils::startWifi()
   startWiFiSta();
 }
 
+static void handleFailure(const char *message)
+{
+  ESP_LOGE(TAG, "%s", message);
+  vTaskDelay(5000 / portTICK_PERIOD_MS);
+  esp_restart();
+}
+
+static void establishPsk() {}
+
 static void registerMqttHandlers(esp_mqtt_client_handle_t client)
 {
   esp_mqtt_client_register_event(
@@ -215,9 +224,7 @@ esp_mqtt_client_handle_t NetUtils::initMqttConnection()
   auto client = esp_mqtt_client_init(&mqttCfg);
   if (!client)
   {
-    ESP_LOGE(TAG, "Client not acquired... Will restart in 5 seconds");
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-    esp_restart();
+    handleFailure("Client not acquired... Will restart in 5 seconds");
   }
 
   registerMqttHandlers(client);
