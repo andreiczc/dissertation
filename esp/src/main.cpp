@@ -1,4 +1,5 @@
 #include "coap_client.h"
+#include "crypto_utils.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "net_utils.h"
@@ -25,12 +26,18 @@ extern "C" void app_main()
   init();
   ESP_LOGI(TAG, "Init complete");
 
-  const auto netUtils = NetUtils::getInstance();
+  /* const auto netUtils = NetUtils::getInstance();
   netUtils->startWifi();
 
   // const auto client = netUtils->initMqttConnection();
   CoapClient client("192.168.0.180", 5683);
 
   size_t payloadLength;
-  auto  *payload = client.doGet(payloadLength, "test");
+  auto  *payload = client.doGet(payloadLength, "test"); */
+
+  const auto encoded = crypto::encodeBase64((uint8_t *)"hello");
+  ESP_LOGI(TAG, "Encoded: %s", encoded.get());
+
+  const auto decoded = crypto::decodeBase64(encoded.get());
+  ESP_LOGI(TAG, "Decoded: %s", decoded.get());
 }
