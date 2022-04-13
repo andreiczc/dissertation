@@ -33,7 +33,4 @@ extern "C" void app_main()
 
   size_t payloadLength;
   auto  *payload = client.doGet(payloadLength, "test");
-
-  ESP_LOGI(TAG, "Received from coap server %d bytes: %d", payloadLength,
-           payload[1]);
 }

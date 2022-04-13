@@ -47,7 +47,9 @@ static void coapMessageHandler(struct coap_context_t *context,
     handleFailure("The message doesn't have VALID response code");
   }
 
-  coap_get_data(received, &payloadLength, &payload);
+  const auto returnCode = coap_get_data(received, &payloadLength, &payload);
+  ESP_LOGI(TAG, "COAP Get Data is correct: %s", returnCode ? "true" : "false");
+  ESP_LOGI(TAG, "Received from coap server %d bytes.", payloadLength);
 }
 
 static int resolve_address(const char *host, const char *service,
@@ -150,7 +152,7 @@ uint8_t *CoapClient::doGet(size_t &lengthReceived, const std::string &uriPath)
 
   lengthReceived = payloadLength;
 
-  return payload;
+  return payload; // TODO fix payload
 }
 
 uint8_t *CoapClient::doPost(const std::string &body, size_t &lengthReceived,
