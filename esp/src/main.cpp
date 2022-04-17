@@ -55,5 +55,4 @@ extern "C" void app_main()
   ESP_LOGI(TAG, "Restored: %s", restored.get()); */
 
   const auto dhParams = crypto::generateEcdhParams();
-  ESP_LOG_BUFFER_HEX(TAG, dhParams.get(), 32);
 }

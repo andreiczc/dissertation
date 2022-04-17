@@ -1,6 +1,7 @@
 #ifndef _CRYPTO_UTILS_H
 #define _CRYPTO_UTILS_H
 
+#include "mbedtls/ecdh.h"
 #include <memory>
 
 namespace crypto
@@ -15,7 +16,7 @@ std::unique_ptr<uint8_t[]> encryptAes(uint8_t *input, uint8_t *key, uint8_t *iv,
 std::unique_ptr<uint8_t[]> decryptAes(uint8_t *input, uint16_t inputLength,
                                       uint8_t *key, uint8_t *iv);
 
-std::unique_ptr<uint8_t[]> generateEcdhParams();
+mbedtls_ecdh_context generateEcdhParams();
 } // end namespace crypto
 
 #endif // _CRYPTO_UTILS_H

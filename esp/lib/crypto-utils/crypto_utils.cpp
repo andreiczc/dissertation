@@ -4,9 +4,12 @@
 #include "esp_log.h"
 #include "mbedtls/base64.h"
 #include "mbedtls/ctr_drbg.h"
-#include "mbedtls/ecdh.h"
 #include "mbedtls/entropy.h"
 #include <cstring>
+#include <functional>
+
+#define KEY_SIZE   32
+#define BLOCK_SIZE 16
 
 namespace crypto
 {
@@ -65,7 +68,7 @@ static std::unique_ptr<uint8_t[]> depadPkcs5(uint8_t *input, size_t inputLength)
 
   memcpy(result.get(), input, inputLength);
 
-  if (padBytes < 16)
+  if (padBytes < BLOCK_SIZE)
   {
     for (auto i = inputLength - 1; i >= inputLength - padBytes; --i)
     {
@@ -88,17 +91,18 @@ std::unique_ptr<uint8_t[]> encryptAes(uint8_t *input, uint8_t *key, uint8_t *iv,
 
   const auto inputLength = strlen((char *)input);
   ESP_LOGI(TAG, "Plaintext size: %d", inputLength);
-  ESP_LOG_BUFFER_HEX(TAG, key, 32);
-  ESP_LOG_BUFFER_HEX(TAG, iv, 16);
+  ESP_LOG_BUFFER_HEX(TAG, key, KEY_SIZE);
+  ESP_LOG_BUFFER_HEX(TAG, iv, BLOCK_SIZE);
 
-  outputSize = inputLength % 16 == 0 ? inputLength
-                                     : inputLength + (16 - inputLength % 16);
+  outputSize = inputLength % BLOCK_SIZE == 0
+                   ? inputLength
+                   : inputLength + (BLOCK_SIZE - inputLength % BLOCK_SIZE);
 
   std::unique_ptr<uint8_t[]> output(new uint8_t[outputSize]);
 
   esp_aes_context context;
   esp_aes_init(&context);
-  esp_aes_setkey(&context, key, 256);
+  esp_aes_setkey(&context, key, KEY_SIZE * 8);
 
   int returnValue = 0;
 
@@ -129,14 +133,14 @@ std::unique_ptr<uint8_t[]> decryptAes(uint8_t *input, uint16_t inputLength,
                                       uint8_t *key, uint8_t *iv)
 {
   ESP_LOGI(TAG, "Size of ciphertext: %d", inputLength);
-  ESP_LOG_BUFFER_HEX(TAG, key, 32);
-  ESP_LOG_BUFFER_HEX(TAG, iv, 16);
+  ESP_LOG_BUFFER_HEX(TAG, key, KEY_SIZE);
+  ESP_LOG_BUFFER_HEX(TAG, iv, BLOCK_SIZE);
 
   std::unique_ptr<uint8_t[]> output(new uint8_t[inputLength]);
 
   esp_aes_context context;
   esp_aes_init(&context);
-  esp_aes_setkey(&context, key, 256);
+  esp_aes_setkey(&context, key, KEY_SIZE * 8);
 
   const auto returnValue = esp_aes_crypt_cbc(
       &context, ESP_AES_DECRYPT, inputLength, iv, input, output.get());
@@ -153,13 +157,12 @@ std::unique_ptr<uint8_t[]> decryptAes(uint8_t *input, uint16_t inputLength,
   return std::move(depadded);
 }
 
-std::unique_ptr<uint8_t[]> generateEcdhParams()
+mbedtls_ecdh_context generateEcdhParams()
 {
-  std::unique_ptr<uint8_t[]> result(new uint8_t[32]);
-  mbedtls_ecdh_context       context;
-  mbedtls_ctr_drbg_context   ctrDrbg;
-  mbedtls_entropy_context    entropy;
-  const auto                *custom = "l33t";
+  mbedtls_ecdh_context     context;
+  mbedtls_ctr_drbg_context ctrDrbg;
+  mbedtls_entropy_context  entropy;
+  const auto              *custom = "l33t";
 
   mbedtls_ecdh_init(&context);
   mbedtls_entropy_init(&entropy);
@@ -176,9 +179,47 @@ std::unique_ptr<uint8_t[]> generateEcdhParams()
                                         mbedtls_ctr_drbg_random, &ctrDrbg);
   ESP_LOGI(TAG, "mbedtls_ecdh_gen_public return code: %d", returnValue);
 
-  returnValue = mbedtls_mpi_write_binary(&context.Q.X, result.get(), 32);
+  uint8_t buffer[KEY_SIZE];
+  returnValue = mbedtls_mpi_write_binary(&context.Q.X, buffer, KEY_SIZE);
   ESP_LOGI(TAG, "mbedtls_mpi_write_binary return code: %d", returnValue);
+  ESP_LOG_BUFFER_HEX(TAG, buffer, KEY_SIZE);
 
-  return std::move(result);
+  mbedtls_entropy_free(&entropy);
+  mbedtls_ctr_drbg_free(&ctrDrbg);
+
+  return context;
+}
+
+std::unique_ptr<uint8_t[]> generateSharedSecret(mbedtls_ecdh_context &context,
+                                                uint8_t *peerPublicParam)
+{
+  auto returnCode = mbedtls_mpi_lset(&context.Qp.Z, 1);
+  ESP_LOGI(TAG, "mbedtls_mpi_lset return code: %d", returnCode);
+
+  returnCode =
+      mbedtls_mpi_read_binary(&context.Qp.X, peerPublicParam, KEY_SIZE);
+  ESP_LOGI(TAG, "mbedtls_mpi_read_binary return code: %d", returnCode);
+
+  mbedtls_ctr_drbg_context ctrDrbg;
+  mbedtls_entropy_context  entropy;
+  const auto              *custom = "l33t";
+
+  mbedtls_entropy_init(&entropy);
+  returnCode = mbedtls_ctr_drbg_seed(&ctrDrbg, mbedtls_entropy_func, &entropy,
+                                     (uint8_t *)custom, strlen(custom));
+  ESP_LOGI(TAG, "mbedtls_ctr_drbg_seed return code: %d", returnCode);
+
+  returnCode = mbedtls_ecdh_compute_shared(&context.grp, &context.z,
+                                           &context.Qp, &context.d,
+                                           mbedtls_ctr_drbg_random, &ctrDrbg);
+  ESP_LOGI(TAG, "mbedtls_ecdh_compute_shared return code: %d", returnCode);
+
+  std::unique_ptr<uint8_t[]> buffer(new uint8_t[KEY_SIZE]);
+  returnCode = mbedtls_mpi_write_binary(&context.z, buffer.get(), KEY_SIZE);
+  ESP_LOGI(TAG, "mbedtls_mpi_write_binary return code: %d", returnCode);
+  ESP_LOG_BUFFER_HEX(TAG, buffer.get(), KEY_SIZE);
+
+  mbedtls_entropy_free(&entropy);
+  mbedtls_ctr_drbg_free(&ctrDrbg);
 }
 } // end namespace crypto
