@@ -54,5 +54,34 @@ extern "C" void app_main()
 
   ESP_LOGI(TAG, "Restored: %s", restored.get()); */
 
-  const auto dhParams = crypto::generateEcdhParams();
+  /* ESP_LOGI(TAG, "Calculating 1st param pair");
+  auto    ctx1 = crypto::generateEcdhParams();
+  uint8_t public1[32];
+  mbedtls_mpi_write_binary(&ctx1.Q.X, public1, 32);
+  ESP_LOGI(TAG, "Finished 1st param pair");
+
+  ESP_LOGI(TAG, "Calculating 2nd param pair");
+  auto    ctx2 = crypto::generateEcdhParams();
+  uint8_t public2[32];
+  mbedtls_mpi_write_binary(&ctx2.Q.X, public2, 32);
+  ESP_LOGI(TAG, "Finished 2nd param pair"); */
+
+  TaskHandle_t handle1;
+  xTaskCreate(
+      [](void *params)
+      {
+        ESP_LOGI(TAG, "Calculating 1st param pair");
+        auto    ctx1 = crypto::generateEcdhParams();
+        uint8_t public1[32];
+        mbedtls_mpi_write_binary(&ctx1.Q.X, public1, 32);
+        ESP_LOGI(TAG, "Finished 1st param pair");
+        vTaskDelete(nullptr);
+      },
+      "PARAM1", 8192, nullptr, 99, &handle1);
+
+  /* auto generated1 = crypto::generateSharedSecret(ctx1, public2);
+  auto generated2 = crypto::generateSharedSecret(ctx2, public1);
+
+  ESP_LOG_BUFFER_HEX(TAG, generated1.get(), 32);
+  ESP_LOG_BUFFER_HEX(TAG, generated2.get(), 32); */
 }

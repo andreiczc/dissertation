@@ -17,6 +17,9 @@ std::unique_ptr<uint8_t[]> decryptAes(uint8_t *input, uint16_t inputLength,
                                       uint8_t *key, uint8_t *iv);
 
 mbedtls_ecdh_context generateEcdhParams();
+
+std::unique_ptr<uint8_t[]> generateSharedSecret(mbedtls_ecdh_context &context,
+                                                uint8_t *peerPublicParam);
 } // end namespace crypto
 
 #endif // _CRYPTO_UTILS_H

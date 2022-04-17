@@ -159,6 +159,8 @@ std::unique_ptr<uint8_t[]> decryptAes(uint8_t *input, uint16_t inputLength,
 
 mbedtls_ecdh_context generateEcdhParams()
 {
+  ESP_LOGI(TAG, "Generating ECDH params");
+
   mbedtls_ecdh_context     context;
   mbedtls_ctr_drbg_context ctrDrbg;
   mbedtls_entropy_context  entropy;
@@ -221,5 +223,7 @@ std::unique_ptr<uint8_t[]> generateSharedSecret(mbedtls_ecdh_context &context,
 
   mbedtls_entropy_free(&entropy);
   mbedtls_ctr_drbg_free(&ctrDrbg);
+
+  return std::move(buffer);
 }
 } // end namespace crypto
