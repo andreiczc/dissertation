@@ -167,6 +167,7 @@ mbedtls_ecdh_context generateEcdhParams()
   const auto              *custom = "l33t";
 
   mbedtls_ecdh_init(&context);
+  mbedtls_ctr_drbg_init(&ctrDrbg);
   mbedtls_entropy_init(&entropy);
 
   auto returnValue =
