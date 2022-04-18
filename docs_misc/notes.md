@@ -13,3 +13,7 @@
 ## Things to remember
 
 0x04 is Uncompressed point indicator!
+
+## TODO
+
+- add certificate read from SPIFFS

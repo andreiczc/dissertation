@@ -21,6 +21,11 @@ mbedtls_ecdh_context generateEcdhParams();
 std::unique_ptr<uint8_t[]>
 generateSharedSecret(mbedtls_ecdh_context    &context,
                      const mbedtls_ecp_point &peerPublicParam);
+
+std::unique_ptr<uint8_t[]> computeSha384(uint8_t *message,
+                                         size_t   messageLength);
+
+std::unique_ptr<uint8_t[]> signEcdsa(uint8_t *message, size_t messageLength);
 } // end namespace crypto
 
 #endif // _CRYPTO_UTILS_H

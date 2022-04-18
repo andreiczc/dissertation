@@ -54,7 +54,7 @@ extern "C" void app_main()
 
   ESP_LOGI(TAG, "Restored: %s", restored.get()); */
 
-  ESP_LOGI(TAG, "Calculating 1st param pair");
+  /* ESP_LOGI(TAG, "Calculating 1st param pair");
   auto ctx1 = crypto::generateEcdhParams();
   ESP_LOGI(TAG, "Finished 1st param pair");
 
@@ -79,5 +79,11 @@ extern "C" void app_main()
 
   mbedtls_mpi_lset(&point.Z, 1);
 
-  auto generated1 = crypto::generateSharedSecret(ctx1, point);
+  auto generated1 = crypto::generateSharedSecret(ctx1, point); */
+
+  uint8_t   *message       = (uint8_t *)"hello";
+  const auto messageLength = 4;
+
+  auto signature = crypto::signEcdsa(message, messageLength);
+  ESP_LOG_BUFFER_HEX(TAG, signature.get(), 64);
 }

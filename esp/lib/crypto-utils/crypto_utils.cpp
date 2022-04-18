@@ -4,12 +4,15 @@
 #include "esp_log.h"
 #include "mbedtls/base64.h"
 #include "mbedtls/ctr_drbg.h"
+#include "mbedtls/ecdsa.h"
 #include "mbedtls/entropy.h"
+#include "mbedtls/sha512.h"
 #include <cstring>
 #include <functional>
 
 #define KEY_SIZE   32
 #define BLOCK_SIZE 16
+#define SHA_384    1
 
 namespace crypto
 {
@@ -236,5 +239,62 @@ generateSharedSecret(mbedtls_ecdh_context    &context,
   mbedtls_ctr_drbg_free(&ctrDrbg);
 
   return std::move(buffer);
+}
+
+std::unique_ptr<uint8_t[]> computeSha384(uint8_t *message, size_t messageLength)
+{
+  std::unique_ptr<uint8_t[]> result(new uint8_t[64]);
+
+  ESP_LOGI(TAG, "Computing SHA384");
+  ESP_LOG_BUFFER_HEX(TAG, message, messageLength);
+
+  auto returnCode =
+      mbedtls_sha512_ret(message, messageLength, result.get(), SHA_384);
+  ESP_LOGI(TAG, "mbedtls_sha512_ret return code: %d", returnCode);
+
+  return std::move(result);
+}
+
+std::unique_ptr<uint8_t[]> signEcdsa(uint8_t *message, size_t messageLength)
+{
+  ESP_LOGI(TAG, "Signing ECDSA");
+
+  mbedtls_ecdsa_context    context;
+  mbedtls_entropy_context  entropy;
+  mbedtls_ctr_drbg_context ctrDrbg;
+  const auto              *custom = "sec";
+
+  mbedtls_ecdsa_init(&context);
+  mbedtls_entropy_init(&entropy);
+  mbedtls_ctr_drbg_init(&ctrDrbg);
+
+  auto returnCode =
+      mbedtls_ctr_drbg_seed(&ctrDrbg, mbedtls_entropy_func, &entropy,
+                            (uint8_t *)custom, strlen(custom));
+  ESP_LOGI(TAG, "mbedtls_ctr_drbg_seed return code: %d", returnCode);
+
+  returnCode = mbedtls_ecdsa_genkey(&context, MBEDTLS_ECP_DP_BP256R1,
+                                    mbedtls_ctr_drbg_random, &ctrDrbg);
+  ESP_LOGI(TAG, "mbedtls_ecdsa_genkey return code: %d", returnCode);
+
+  auto digest = computeSha384(message, messageLength);
+
+  // TODO use from keypair... check docs
+  size_t                     signatureLength = 0;
+  std::unique_ptr<uint8_t[]> result(new uint8_t[64]);
+  returnCode = mbedtls_ecdsa_write_signature(
+      &context, MBEDTLS_MD_SHA384, digest.get(), 64, result.get(),
+      &signatureLength, mbedtls_ctr_drbg_random, &ctrDrbg);
+  ESP_LOGI(TAG, "mbedtls_ecdsa_write_signature return code: %d", returnCode);
+
+  returnCode = mbedtls_ecdsa_read_signature(&context, digest.get(), 64,
+                                            result.get(), 64);
+  ESP_LOGI(TAG, "mbedtls_ecdsa_read_signature return code: %d", returnCode);
+
+  mbedtls_ecdsa_free(&context);
+  mbedtls_entropy_free(&entropy);
+  mbedtls_ctr_drbg_free(&ctrDrbg);
+
+  return std::move(result);
 }
 } // end namespace crypto
