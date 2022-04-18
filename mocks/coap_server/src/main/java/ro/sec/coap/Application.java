@@ -116,17 +116,16 @@ public class Application {
                     log.info("Signature from {} verifies", clientAddress);
                     exchange.accept();
 
-                    var thirdPartyPublicKey = (BCECPublicKey) CryptoUtils.readPublicKey(clientPayload.getPublicParams());
-                    var ownKeyPair = CryptoUtils.generateEcKeyPair(thirdPartyPublicKey.getParams());
-
-                    var publicKeyBytes = ownKeyPair.getPublic().getEncoded();
+                    var ownKeyPair = CryptoUtils.generateEcKeyPair();
+                    var thirdPartyPublicKey = CryptoUtils.decodePublicPoint(clientPayload.getPublicParams(), ((BCECPublicKey)ownKeyPair.getPublic()).getParams());
+                    var publicKeyPoint = CryptoUtils.packagePublicEcPoint((BCECPublicKey) ownKeyPair.getPublic());
                     var signatureOfPublicKey = CryptoUtils
-                            .signEcdsa(publicKeyBytes, privateKey);
+                            .signEcdsa(publicKeyPoint, privateKey);
 
                     var testBytes = CryptoUtils.generateRandomSequence(TEST_BYTES_LENGTH);
                     testBytesMap.put(clientAddress, testBytes);
 
-                    var serverPayload = new ServerPayload(publicKeyBytes,
+                    var serverPayload = new ServerPayload(publicKeyPoint,
                             signatureOfPublicKey,
                             testBytes);
 

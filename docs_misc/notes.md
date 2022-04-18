@@ -9,3 +9,7 @@
 
 - deleting the psk associated with the client doesn't affect the connection
 - as soon as the client is connected, delete that and CHECK THE MEMORY
+
+## Things to remember
+
+0x04 is Uncompressed point indicator!

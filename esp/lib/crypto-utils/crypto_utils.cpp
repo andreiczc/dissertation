@@ -193,24 +193,34 @@ mbedtls_ecdh_context generateEcdhParams()
   return context;
 }
 
-std::unique_ptr<uint8_t[]> generateSharedSecret(mbedtls_ecdh_context &context,
-                                                uint8_t *peerPublicParam)
+std::unique_ptr<uint8_t[]>
+generateSharedSecret(mbedtls_ecdh_context    &context,
+                     const mbedtls_ecp_point &peerPublicParam)
 {
-  auto returnCode = mbedtls_mpi_lset(&context.Qp.Z, 1);
-  ESP_LOGI(TAG, "mbedtls_mpi_lset return code: %d", returnCode);
-
-  returnCode =
-      mbedtls_mpi_read_binary(&context.Qp.X, peerPublicParam, KEY_SIZE);
-  ESP_LOGI(TAG, "mbedtls_mpi_read_binary return code: %d", returnCode);
+  ESP_LOGI(TAG, "Computing shared secret");
 
   mbedtls_ctr_drbg_context ctrDrbg;
   mbedtls_entropy_context  entropy;
   const auto              *custom = "l33t";
 
+  mbedtls_ctr_drbg_init(&ctrDrbg);
   mbedtls_entropy_init(&entropy);
-  returnCode = mbedtls_ctr_drbg_seed(&ctrDrbg, mbedtls_entropy_func, &entropy,
-                                     (uint8_t *)custom, strlen(custom));
+  auto returnCode =
+      mbedtls_ctr_drbg_seed(&ctrDrbg, mbedtls_entropy_func, &entropy,
+                            (uint8_t *)custom, strlen(custom));
   ESP_LOGI(TAG, "mbedtls_ctr_drbg_seed return code: %d", returnCode);
+
+  context.Qp = peerPublicParam;
+
+  returnCode = mbedtls_ecp_check_privkey(&context.grp, &context.d);
+  ESP_LOGI(TAG, "mbedtls_ecp_check_privkey return code: %d", returnCode);
+
+  returnCode = mbedtls_ecp_check_pubkey(&context.grp, &context.Q);
+  ESP_LOGI(TAG, "mbedtls_ecp_check_pubkey mine return code: %d", returnCode);
+
+  returnCode = mbedtls_ecp_check_pubkey(&context.grp, &context.Qp);
+  ESP_LOGI(TAG, "mbedtls_ecp_check_pubkey 3rd party return code: %d",
+           returnCode);
 
   returnCode = mbedtls_ecdh_compute_shared(&context.grp, &context.z,
                                            &context.Qp, &context.d,

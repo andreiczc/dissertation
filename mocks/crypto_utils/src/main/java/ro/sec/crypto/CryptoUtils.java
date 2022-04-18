@@ -1,10 +1,12 @@
 package ro.sec.crypto;
 
+import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jce.ECNamedCurveTable;
 
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import java.io.ByteArrayInputStream;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.*;
@@ -12,9 +14,9 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.spec.ECParameterSpec;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
+import java.security.interfaces.ECPublicKey;
+import java.security.spec.*;
+import java.util.Arrays;
 import java.util.Base64;
 
 public class CryptoUtils {
@@ -24,6 +26,7 @@ public class CryptoUtils {
     }
 
     private static final String BOUNCY_CASTLE_PROVIDER = "BC";
+    private static final byte UNCOMPRESSED_POINT_INDICATOR = 0x04;
 
     public static byte[] generateRandomSequence(int length) {
         if (length <= 0) {
@@ -154,6 +157,39 @@ public class CryptoUtils {
         keyPairGenerator.initialize(spec);
 
         return keyPairGenerator.generateKeyPair();
+    }
+
+    public static ECPublicKey decodePublicPoint(
+            final byte[] uncompressedPoint, final ECParameterSpec params)
+            throws Exception {
+
+        int offset = 0;
+        if (uncompressedPoint[offset++] != UNCOMPRESSED_POINT_INDICATOR) {
+            throw new IllegalArgumentException(
+                    "Invalid uncompressedPoint encoding, no uncompressed point indicator");
+        }
+
+        int keySizeBytes = (params.getOrder().bitLength() + Byte.SIZE - 1)
+                / Byte.SIZE;
+
+        if (uncompressedPoint.length != 1 + 2 * keySizeBytes) {
+            throw new IllegalArgumentException(
+                    "Invalid uncompressedPoint encoding, not the correct size");
+        }
+
+        final BigInteger x = new BigInteger(1, Arrays.copyOfRange(
+                uncompressedPoint, offset, offset + keySizeBytes));
+        offset += keySizeBytes;
+        final BigInteger y = new BigInteger(1, Arrays.copyOfRange(
+                uncompressedPoint, offset, offset + keySizeBytes));
+        final ECPoint w = new ECPoint(x, y);
+        final ECPublicKeySpec ecPublicKeySpec = new ECPublicKeySpec(w, params);
+        final KeyFactory keyFactory = KeyFactory.getInstance("EC");
+        return (ECPublicKey) keyFactory.generatePublic(ecPublicKeySpec);
+    }
+
+    public static byte[] packagePublicEcPoint(BCECPublicKey publicKey) {
+        return publicKey.getQ().getEncoded(false);
     }
 
     public static SecretKey generateSharedSecret(PrivateKey own, PublicKey thirdParty) throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException {

@@ -1,6 +1,10 @@
 package ro.sec.coap;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.bouncycastle.asn1.x9.ECNamedCurveTable;
+import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
+import org.bouncycastle.jce.ECPointUtil;
+import org.bouncycastle.jce.spec.ECNamedCurveSpec;
 import org.bouncycastle.util.Arrays;
 import org.eclipse.californium.core.CoapClient;
 import org.eclipse.californium.core.coap.MediaTypeRegistry;
@@ -13,6 +17,7 @@ import ro.sec.crypto.CryptoUtils;
 import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.security.cert.CertificateFactory;
+import java.security.spec.EllipticCurve;
 import java.util.Base64;
 
 import static org.eclipse.californium.core.coap.CoAP.ResponseCode.VALID;
@@ -38,9 +43,10 @@ public class Application {
         var decodedCert = Base64.getDecoder().decode(serverCertResponse.getPayload());
         var serverCert = CryptoUtils.readCertificate(decodedCert);
         var ownKeyPair = CryptoUtils.generateEcKeyPair();
-        var signatureOfPublicKey = CryptoUtils.signEcdsa(ownKeyPair.getPublic().getEncoded(), privateKey);
+        var publicPoint = CryptoUtils.packagePublicEcPoint((BCECPublicKey) ownKeyPair.getPublic());
+        var signatureOfPublicKey = CryptoUtils.signEcdsa(publicPoint, privateKey);
 
-        var payloadObj = new ClientPayload(ownKeyPair.getPublic().getEncoded(), signatureOfPublicKey);
+        var payloadObj = new ClientPayload(publicPoint, signatureOfPublicKey);
         var payload = new ObjectMapper()
                 .writeValueAsString(payloadObj);
 
@@ -62,7 +68,7 @@ public class Application {
         }
 
         log.info("Server signature verifies");
-        var serverPubKey = CryptoUtils.readPublicKey(serverPayload.getPublicParams());
+        var serverPubKey = CryptoUtils.decodePublicPoint(serverPayload.getPublicParams(), ((BCECPublicKey) ownKeyPair.getPublic()).getParams());
         var sharedSecret = CryptoUtils.generateSharedSecret(
                 ownKeyPair.getPrivate(),
                 serverPubKey

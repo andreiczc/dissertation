@@ -55,33 +55,29 @@ extern "C" void app_main()
   ESP_LOGI(TAG, "Restored: %s", restored.get()); */
 
   ESP_LOGI(TAG, "Calculating 1st param pair");
-  auto    ctx1 = crypto::generateEcdhParams();
-  uint8_t public1[32];
-  mbedtls_mpi_write_binary(&ctx1.Q.X, public1, 32);
+  auto ctx1 = crypto::generateEcdhParams();
   ESP_LOGI(TAG, "Finished 1st param pair");
 
-  ESP_LOGI(TAG, "Calculating 2nd param pair");
-  auto    ctx2 = crypto::generateEcdhParams();
-  uint8_t public2[32];
-  mbedtls_mpi_write_binary(&ctx2.Q.X, public2, 32);
-  ESP_LOGI(TAG, "Finished 2nd param pair");
+  mbedtls_ecp_point point;
+  mbedtls_ecp_point_init(&point);
 
-  /* TaskHandle_t handle1;
-  xTaskCreate(
-      [](void *params)
-      {
-        ESP_LOGI(TAG, "Calculating 1st param pair");
-        auto    ctx1 = crypto::generateEcdhParams();
-        uint8_t public1[32];
-        mbedtls_mpi_write_binary(&ctx1.Q.X, public1, 32);
-        ESP_LOGI(TAG, "Finished 1st param pair");
-        vTaskDelete(nullptr);
-      },
-      "PARAM1", 3584, nullptr, 99, &handle1); */
+  mbedtls_mpi_init(&point.X);
+  mbedtls_mpi_init(&point.Y);
+  mbedtls_mpi_init(&point.Z);
 
-  /* auto generated1 = crypto::generateSharedSecret(ctx1, public2);
-  auto generated2 = crypto::generateSharedSecret(ctx2, public1);
+  uint8_t ptX[32] = {0x0e, 0xdd, 0xa5, 0xe3, 0xbd, 0x71, 0x4e, 0x76,
+                     0xc3, 0x6b, 0xee, 0x70, 0x13, 0x05, 0xc0, 0x7e,
+                     0x59, 0xdf, 0x35, 0x4e, 0x78, 0x46, 0xa3, 0xf8,
+                     0x43, 0x1b, 0xfa, 0xf8, 0x69, 0x26, 0x87, 0x5e};
+  mbedtls_mpi_read_binary(&point.X, ptX, 32);
 
-  ESP_LOG_BUFFER_HEX(TAG, generated1.get(), 32);
-  ESP_LOG_BUFFER_HEX(TAG, generated2.get(), 32); */
+  uint8_t ptY[32] = {0x25, 0xa6, 0x72, 0xa8, 0x98, 0x23, 0x54, 0xa0,
+                     0x19, 0xe9, 0x4f, 0x15, 0xa6, 0x20, 0x27, 0xc9,
+                     0x24, 0xf9, 0x05, 0xee, 0x8c, 0x70, 0x66, 0x9d,
+                     0x0e, 0x24, 0x11, 0x80, 0x7a, 0x6d, 0x43, 0x9e};
+  mbedtls_mpi_read_binary(&point.Y, ptY, 32);
+
+  mbedtls_mpi_lset(&point.Z, 1);
+
+  auto generated1 = crypto::generateSharedSecret(ctx1, point);
 }
