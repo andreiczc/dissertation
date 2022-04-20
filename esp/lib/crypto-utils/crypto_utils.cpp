@@ -255,7 +255,9 @@ std::unique_ptr<uint8_t[]> computeSha384(uint8_t *message, size_t messageLength)
   return std::move(result);
 }
 
-std::unique_ptr<uint8_t[]> signEcdsa(uint8_t *message, size_t messageLength)
+std::unique_ptr<uint8_t[]> signEcdsa(uint8_t *message, size_t messageLength,
+                                     size_t            &signatureLength,
+                                     mbedtls_ecp_point &peerPublicParam)
 {
   ESP_LOGI(TAG, "Signing ECDSA");
 
@@ -280,21 +282,59 @@ std::unique_ptr<uint8_t[]> signEcdsa(uint8_t *message, size_t messageLength)
   auto digest = computeSha384(message, messageLength);
 
   // TODO use from keypair... check docs
-  size_t                     signatureLength = 0;
-  std::unique_ptr<uint8_t[]> result(new uint8_t[64]);
+  std::unique_ptr<uint8_t[]> result(new uint8_t[80]);
   returnCode = mbedtls_ecdsa_write_signature(
       &context, MBEDTLS_MD_SHA384, digest.get(), 64, result.get(),
       &signatureLength, mbedtls_ctr_drbg_random, &ctrDrbg);
   ESP_LOGI(TAG, "mbedtls_ecdsa_write_signature return code: %d", returnCode);
+  ESP_LOGI(TAG, "Signature length: %d", signatureLength);
+
+  mbedtls_ecp_point_init(&peerPublicParam);
+  mbedtls_ecp_copy(&peerPublicParam, &context.Q);
+
+  mbedtls_ecdsa_free(&context);
+  mbedtls_ctr_drbg_free(&ctrDrbg);
+  mbedtls_entropy_free(&entropy);
+
+  return std::move(result);
+}
+
+bool verifyEcdsa(uint8_t *message, size_t messageLength, uint8_t *signature,
+                 size_t                   signatureLength,
+                 const mbedtls_ecp_point &peerPublicParam)
+{
+  ESP_LOGI(TAG, "Verifying ECDSA signature");
+
+  mbedtls_ecdsa_context    context;
+  mbedtls_entropy_context  entropy;
+  mbedtls_ctr_drbg_context ctrDrbg;
+  const auto              *custom = "sec";
+
+  mbedtls_ecdsa_init(&context);
+  mbedtls_entropy_init(&entropy);
+  mbedtls_ctr_drbg_init(&ctrDrbg);
+
+  auto returnCode =
+      mbedtls_ctr_drbg_seed(&ctrDrbg, mbedtls_entropy_func, &entropy,
+                            (uint8_t *)custom, strlen(custom));
+  ESP_LOGI(TAG, "mbedtls_ctr_drbg_seed return code: %d", returnCode);
+
+  returnCode = mbedtls_ecp_group_load(&context.grp, MBEDTLS_ECP_DP_BP256R1);
+  ESP_LOGI(TAG, "mbedtls_ecp_group_load return code: %d", returnCode);
+
+  returnCode = mbedtls_ecp_copy(&context.Q, &peerPublicParam);
+  ESP_LOGI(TAG, "mbedtls_ecp_copy return code: %d", returnCode);
+
+  auto digest = computeSha384(message, messageLength);
 
   returnCode = mbedtls_ecdsa_read_signature(&context, digest.get(), 64,
-                                            result.get(), 64);
+                                            signature, signatureLength);
   ESP_LOGI(TAG, "mbedtls_ecdsa_read_signature return code: %d", returnCode);
 
   mbedtls_ecdsa_free(&context);
-  mbedtls_entropy_free(&entropy);
   mbedtls_ctr_drbg_free(&ctrDrbg);
+  mbedtls_entropy_free(&entropy);
 
-  return std::move(result);
+  return returnCode == 0;
 }
 } // end namespace crypto

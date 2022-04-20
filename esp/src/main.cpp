@@ -84,6 +84,11 @@ extern "C" void app_main()
   uint8_t   *message       = (uint8_t *)"hello";
   const auto messageLength = 4;
 
-  auto signature = crypto::signEcdsa(message, messageLength);
-  ESP_LOG_BUFFER_HEX(TAG, signature.get(), 64);
+  size_t signatureLength = 0;
+  mbedtls_ecp_point point;
+  const auto signature = crypto::signEcdsa(message, messageLength, signatureLength, point);
+  ESP_LOG_BUFFER_HEX(TAG, signature.get(), signatureLength);
+
+  const auto verifies = crypto::verifyEcdsa(message, messageLength, signature.get(), signatureLength, point);
+  ESP_LOGI(TAG, "Signature verfies: %s", verifies ? "YES" : "NO");
 }
