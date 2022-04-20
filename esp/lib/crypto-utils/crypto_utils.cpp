@@ -256,8 +256,7 @@ std::unique_ptr<uint8_t[]> computeSha384(uint8_t *message, size_t messageLength)
 }
 
 std::unique_ptr<uint8_t[]> signEcdsa(uint8_t *message, size_t messageLength,
-                                     size_t            &signatureLength,
-                                     mbedtls_ecp_point &peerPublicParam)
+                                     size_t &signatureLength)
 {
   ESP_LOGI(TAG, "Signing ECDSA");
 
@@ -288,9 +287,6 @@ std::unique_ptr<uint8_t[]> signEcdsa(uint8_t *message, size_t messageLength,
       &signatureLength, mbedtls_ctr_drbg_random, &ctrDrbg);
   ESP_LOGI(TAG, "mbedtls_ecdsa_write_signature return code: %d", returnCode);
   ESP_LOGI(TAG, "Signature length: %d", signatureLength);
-
-  mbedtls_ecp_point_init(&peerPublicParam);
-  mbedtls_ecp_copy(&peerPublicParam, &context.Q);
 
   mbedtls_ecdsa_free(&context);
   mbedtls_ctr_drbg_free(&ctrDrbg);
