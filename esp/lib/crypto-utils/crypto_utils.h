@@ -2,6 +2,7 @@
 #define _CRYPTO_UTILS_H
 
 #include "mbedtls/ecdh.h"
+#include "mbedtls/x509_crt.h"
 #include <memory>
 
 namespace crypto
@@ -26,11 +27,13 @@ std::unique_ptr<uint8_t[]> computeSha384(uint8_t *message,
                                          size_t   messageLength);
 
 std::unique_ptr<uint8_t[]> signEcdsa(uint8_t *message, size_t messageLength,
-                                     size_t &signatureLength);
+                                     size_t        &signatureLength,
+                                     const uint8_t *privateKey,
+                                     size_t         privateKeyLength);
 
 bool verifyEcdsa(uint8_t *message, size_t messageLength, uint8_t *signature,
-                 size_t                   signatureLength,
-                 const mbedtls_ecp_point &peerPublicParam);
+                 size_t signatureLength, const uint8_t *publicKey,
+                 size_t publicKeyLength);
 } // end namespace crypto
 
 #endif // _CRYPTO_UTILS_H

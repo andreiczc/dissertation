@@ -5,7 +5,14 @@
 #include "net_utils.h"
 #include "nvs_flash.h"
 
-static constexpr const char *TAG = "MAIN";
+static constexpr const auto *TAG      = "MAIN";
+static constexpr const auto  CRT_SIZE = 555;
+static constexpr const auto  KEY_SIZE = 122;
+
+extern const uint8_t device_crt_start[] asm("_binary_device_crt_start");
+extern const uint8_t device_crt_end[] asm("_binary_device_crt_end");
+extern const uint8_t device_key_start[] asm("_binary_device_key_start");
+extern const uint8_t device_key_end[] asm("_binary_device_key_end");
 
 static void init()
 {
@@ -85,7 +92,12 @@ extern "C" void app_main()
   const auto messageLength = 4;
 
   size_t     signatureLength = 0;
-  const auto signature =
-      crypto::signEcdsa(message, messageLength, signatureLength);
+  const auto signature       = crypto::signEcdsa(
+            message, messageLength, signatureLength, device_key_start, KEY_SIZE);
   ESP_LOG_BUFFER_HEX(TAG, signature.get(), signatureLength);
+
+  const auto verifies =
+      crypto::verifyEcdsa(message, messageLength, signature.get(),
+                          signatureLength, device_crt_start, CRT_SIZE);
+  ESP_LOGI(TAG, "Signatures verfies: %s", verifies ? "YES" : "NO");
 }

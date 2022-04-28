@@ -6,7 +6,9 @@
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/ecdsa.h"
 #include "mbedtls/entropy.h"
+#include "mbedtls/pk.h"
 #include "mbedtls/sha512.h"
+#include "mbedtls/x509.h"
 #include <cstring>
 #include <functional>
 
@@ -256,27 +258,34 @@ std::unique_ptr<uint8_t[]> computeSha384(uint8_t *message, size_t messageLength)
 }
 
 std::unique_ptr<uint8_t[]> signEcdsa(uint8_t *message, size_t messageLength,
-                                     size_t &signatureLength)
+                                     size_t        &signatureLength,
+                                     const uint8_t *privateKey,
+                                     size_t         privateKeyLength)
 {
   ESP_LOGI(TAG, "Signing ECDSA");
 
   mbedtls_ecdsa_context    context;
   mbedtls_entropy_context  entropy;
   mbedtls_ctr_drbg_context ctrDrbg;
+  mbedtls_pk_context       pkContext;
   const auto              *custom = "sec";
 
   mbedtls_ecdsa_init(&context);
   mbedtls_entropy_init(&entropy);
   mbedtls_ctr_drbg_init(&ctrDrbg);
+  mbedtls_pk_init(&pkContext);
 
-  auto returnCode =
-      mbedtls_ctr_drbg_seed(&ctrDrbg, mbedtls_entropy_func, &entropy,
-                            (uint8_t *)custom, strlen(custom));
+  auto returnCode = mbedtls_pk_parse_key(&pkContext, privateKey,
+                                         privateKeyLength, nullptr, 0);
+  ESP_LOGI(TAG, "mbedtls_pk_parse_key return code: %d", returnCode);
+  auto *keyPair = mbedtls_pk_ec(pkContext);
+
+  returnCode = mbedtls_ctr_drbg_seed(&ctrDrbg, mbedtls_entropy_func, &entropy,
+                                     (uint8_t *)custom, strlen(custom));
   ESP_LOGI(TAG, "mbedtls_ctr_drbg_seed return code: %d", returnCode);
 
-  returnCode = mbedtls_ecdsa_genkey(&context, MBEDTLS_ECP_DP_BP256R1,
-                                    mbedtls_ctr_drbg_random, &ctrDrbg);
-  ESP_LOGI(TAG, "mbedtls_ecdsa_genkey return code: %d", returnCode);
+  returnCode = mbedtls_ecdsa_from_keypair(&context, keyPair);
+  ESP_LOGI(TAG, "mbedtls_ecdsa_from_keypair return code: %d", returnCode);
 
   auto digest = computeSha384(message, messageLength);
 
@@ -291,35 +300,33 @@ std::unique_ptr<uint8_t[]> signEcdsa(uint8_t *message, size_t messageLength,
   mbedtls_ecdsa_free(&context);
   mbedtls_ctr_drbg_free(&ctrDrbg);
   mbedtls_entropy_free(&entropy);
+  mbedtls_pk_free(&pkContext);
 
   return std::move(result);
 }
 
 bool verifyEcdsa(uint8_t *message, size_t messageLength, uint8_t *signature,
-                 size_t                   signatureLength,
-                 const mbedtls_ecp_point &peerPublicParam)
+                 size_t signatureLength, const uint8_t *publicKey,
+                 size_t publicKeyLength)
 {
   ESP_LOGI(TAG, "Verifying ECDSA signature");
 
-  mbedtls_ecdsa_context    context;
-  mbedtls_entropy_context  entropy;
-  mbedtls_ctr_drbg_context ctrDrbg;
-  const auto              *custom = "sec";
+  mbedtls_ecdsa_context context;
+  mbedtls_pk_context    pkContext;
 
   mbedtls_ecdsa_init(&context);
-  mbedtls_entropy_init(&entropy);
-  mbedtls_ctr_drbg_init(&ctrDrbg);
+  mbedtls_pk_init(&pkContext);
 
   auto returnCode =
-      mbedtls_ctr_drbg_seed(&ctrDrbg, mbedtls_entropy_func, &entropy,
-                            (uint8_t *)custom, strlen(custom));
-  ESP_LOGI(TAG, "mbedtls_ctr_drbg_seed return code: %d", returnCode);
+      mbedtls_pk_parse_public_key(&pkContext, publicKey, publicKeyLength);
+  ESP_LOGI(TAG, "mbedtls_pk_parse_key return code: %d", returnCode);
+  auto *keyPair = mbedtls_pk_ec(pkContext);
 
   returnCode = mbedtls_ecp_group_load(&context.grp, MBEDTLS_ECP_DP_BP256R1);
   ESP_LOGI(TAG, "mbedtls_ecp_group_load return code: %d", returnCode);
 
-  returnCode = mbedtls_ecp_copy(&context.Q, &peerPublicParam);
-  ESP_LOGI(TAG, "mbedtls_ecp_copy return code: %d", returnCode);
+  returnCode = mbedtls_ecdsa_from_keypair(&context, keyPair);
+  ESP_LOGI(TAG, "mbedtls_ecdsa_from_keypair return code: %d", returnCode);
 
   auto digest = computeSha384(message, messageLength);
 
@@ -328,8 +335,7 @@ bool verifyEcdsa(uint8_t *message, size_t messageLength, uint8_t *signature,
   ESP_LOGI(TAG, "mbedtls_ecdsa_read_signature return code: %d", returnCode);
 
   mbedtls_ecdsa_free(&context);
-  mbedtls_ctr_drbg_free(&ctrDrbg);
-  mbedtls_entropy_free(&entropy);
+  mbedtls_pk_free(&pkContext);
 
   return returnCode == 0;
 }
