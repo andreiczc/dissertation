@@ -88,16 +88,19 @@ extern "C" void app_main()
 
   auto generated1 = crypto::generateSharedSecret(ctx1, point); */
 
-  uint8_t   *message       = (uint8_t *)"hello";
+  /* uint8_t   *message       = (uint8_t *)"hello";
   const auto messageLength = 4;
 
   size_t     signatureLength = 0;
   const auto signature       = crypto::signEcdsa(
-            message, messageLength, signatureLength, device_key_start, KEY_SIZE);
-  ESP_LOG_BUFFER_HEX(TAG, signature.get(), signatureLength);
+            message, messageLength, signatureLength, device_key_start,
+  KEY_SIZE); ESP_LOG_BUFFER_HEX(TAG, signature.get(), signatureLength);
 
   const auto verifies =
       crypto::verifyEcdsa(message, messageLength, signature.get(),
                           signatureLength, device_crt_start, CRT_SIZE);
-  ESP_LOGI(TAG, "Signatures verfies: %s", verifies ? "YES" : "NO");
+  ESP_LOGI(TAG, "Signatures verfies: %s", verifies ? "YES" : "NO"); */
+
+  const auto netUtils = NetUtils::getInstance();
+  netUtils->startWifi();
 }
