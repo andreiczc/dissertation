@@ -3,11 +3,8 @@
 
 #include "crypto_utils.h"
 #include "esp_log.h"
-#include "spiffs_utils.h"
+#include "net_utils.h"
 #include "web3_client.h"
-
-#define ENV_SSID     "WiFi-2.4"
-#define ENV_WIFI_KEY "180898Delia!"
 
 // CONSTANTS
 static constexpr auto *TAG = "MAIN";
@@ -24,14 +21,7 @@ void setup()
   Serial.begin(115200);
   ESP_LOGI(TAG, "Starting setup");
 
-  WiFi.begin(ENV_SSID, ENV_WIFI_KEY);
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(5000);
-  }
-
-  ESP_LOGI(TAG, "WiFi connection successfull");
-  blockchain::callContract(CONTRACT_ADDRESS, dataString);
+  NetUtils::startWifi();
 }
 
 void loop()
