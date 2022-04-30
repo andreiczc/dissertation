@@ -8,6 +8,8 @@
 
 namespace crypto
 {
+std::unique_ptr<uint8_t> generateRandomSequence(size_t length);
+
 String encodeBase64(uint8_t *input, size_t inputLength, size_t &outputLength);
 
 std::unique_ptr<uint8_t[]> decodeBase64(uint8_t *input, size_t &outputLength);

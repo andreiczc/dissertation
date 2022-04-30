@@ -19,6 +19,18 @@ namespace crypto
 {
 static auto *TAG = "CRYPTO";
 
+std::unique_ptr<uint8_t> generateRandomSequence(size_t length)
+{
+  std::unique_ptr<uint8_t> result(new uint8_t[length]);
+
+  for (auto i = 0; i < length; ++i)
+  {
+    result.get()[i] = (uint8_t)random(255);
+  }
+
+  return std::move(result);
+}
+
 String encodeBase64(uint8_t *input, size_t inputLength, size_t &outputLength)
 {
   std::unique_ptr<uint8_t[]> returnValue(new uint8_t[3 * inputLength]);

@@ -16,6 +16,8 @@
 
 #define KEY_SIZE 32
 
+// TODO add certificate checks in esp and server
+
 static constexpr auto *TAG = "NET";
 
 static const String ATTESTATION_SERVER =
@@ -237,11 +239,11 @@ static std::unique_ptr<uint8_t[]> performClientHello()
   return std::move(serverPoint);
 }
 
-static String performKeyExchange()
+static String performKeyExchange(mbedtls_ecdh_context &ecdhParams)
 {
   HTTPClient client;
 
-  const auto ecdhParams = crypto::generateEcdhParams();
+  ecdhParams = crypto::generateEcdhParams();
 
   ESP_LOGI(TAG, "DH params have been generated");
   uint8_t buffer[KEY_SIZE * 2 + 1];
@@ -289,7 +291,8 @@ static String performKeyExchange()
 }
 
 static void performClientFinish(const char *publicParams, const char *signature,
-                                const char *test, const uint8_t *serverPoint)
+                                const char *test, const uint8_t *serverPoint,
+                                mbedtls_ecdh_context &ecdhParams)
 {
   size_t     paramsLength = 0;
   const auto decodedPublicParams =
@@ -306,26 +309,76 @@ static void performClientFinish(const char *publicParams, const char *signature,
   mbedtls_mpi_init(&point.Y);
   mbedtls_mpi_init(&point.Z);
 
-  uint8_t ptX[KEY_SIZE] = "";
-  memcpy(ptX, serverPoint, KEY_SIZE);
-  mbedtls_mpi_read_binary(&point.X, ptX, KEY_SIZE);
+  uint8_t pt[KEY_SIZE] = "";
+  memcpy(pt, serverPoint, KEY_SIZE);
+  mbedtls_mpi_read_binary(&point.X, pt, KEY_SIZE);
 
-  uint8_t ptY[KEY_SIZE] = "";
-  memcpy(ptY, serverPoint + KEY_SIZE, KEY_SIZE);
-  mbedtls_mpi_read_binary(&point.Y, ptY, KEY_SIZE);
+  memcpy(pt, serverPoint + KEY_SIZE, KEY_SIZE);
+  mbedtls_mpi_read_binary(&point.Y, pt, KEY_SIZE);
 
   mbedtls_mpi_lset(&point.Z, 1);
 
-  crypto::verifyEcdsa(decodedPublicParams.get(), paramsLength,
-                      decodedSignature.get(), signatureLength, point);
+  auto signatureVerifies =
+      crypto::verifyEcdsa(decodedPublicParams.get(), paramsLength,
+                          decodedSignature.get(), signatureLength, point);
+
+  if (!signatureVerifies)
+  {
+    ESP_LOGE(TAG, "Attestation server might be compromised");
+    ESP.restart();
+  }
+
+  memcpy(pt, decodedPublicParams.get() + 1, KEY_SIZE);
+  mbedtls_mpi_read_binary(&point.X, pt, KEY_SIZE);
+
+  memcpy(pt, decodedPublicParams.get() + 1 + KEY_SIZE, KEY_SIZE);
+  mbedtls_mpi_read_binary(&point.Y, pt, KEY_SIZE);
+
+  mbedtls_mpi_lset(&point.Z, 1);
+
+  const auto generatedSecret = crypto::generateSharedSecret(ecdhParams, point);
+
+  size_t     testLength = 0;
+  const auto testBytes  = crypto::decodeBase64((uint8_t *)test, testLength);
+
+  const auto iv = crypto::generateRandomSequence(KEY_SIZE / 2);
+
+  uint16_t   cipherTextSize = 0;
+  const auto cipherText     = crypto::encryptAes(
+          testBytes.get(), generatedSecret.get(), iv.get(), cipherTextSize);
+
+  uint8_t payload[KEY_SIZE] = "";
+  memcpy(payload, iv.get(), KEY_SIZE / 2);
+  memcpy(payload + KEY_SIZE / 2, cipherText.get(), KEY_SIZE / 2);
+
+  size_t     outputLength = 0;
+  const auto payloadEncoded =
+      crypto::encodeBase64(payload, KEY_SIZE, outputLength);
+
+  HTTPClient client;
+  const auto endpoint = ATTESTATION_SERVER + CLIENT_FINISHED_ENDPOINT;
+  client.begin(endpoint);
+  client.addHeader("Content-Type", "text/plain");
+  ESP_LOGI(TAG, "Post to %s", endpoint.c_str());
+  ESP_LOGI(TAG, "Post data: %s", payloadEncoded.c_str());
+
+  size_t     outputLength2 = 0;
+  const auto keyEncoded =
+      crypto::encodeBase64(generatedSecret.get(), 32, outputLength2);
+  ESP_LOGI(TAG, "Key: %s", keyEncoded.c_str());
+
+  const auto statusCode = client.POST(payloadEncoded);
+  ESP_LOGI(TAG, "Server responded %d", statusCode);
 }
 
 static void performAttestationProcess()
 {
   ESP_LOGI(TAG, "Starting the attestation process");
 
-  const auto serverPoint   = performClientHello();
-  const auto serverPayload = performKeyExchange();
+  const auto serverPoint = performClientHello();
+
+  mbedtls_ecdh_context ecdhParams;
+  const auto           serverPayload = performKeyExchange(ecdhParams);
 
   auto       *root = cJSON_Parse(serverPayload.c_str());
   const auto *publicParams =
@@ -333,7 +386,8 @@ static void performAttestationProcess()
   const auto *signature = cJSON_GetObjectItem(root, "signature")->valuestring;
   const auto *test      = cJSON_GetObjectItem(root, "test")->valuestring;
 
-  performClientFinish(publicParams, signature, test, serverPoint.get());
+  performClientFinish(publicParams, signature, test, serverPoint.get(),
+                      ecdhParams);
 }
 
 static bool checkAttestationStatus()
