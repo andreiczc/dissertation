@@ -47,7 +47,7 @@ public class CryptoUtils {
                             plaintext == null, iv == null, secretKey == null));
         }
 
-        var cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        var cipher = Cipher.getInstance("AES/CBC/NoPadding");
         cipher.init(Cipher.ENCRYPT_MODE,
                 secretKey,
                 new IvParameterSpec(iv));
@@ -62,7 +62,7 @@ public class CryptoUtils {
                             cipherText == null, iv == null, secretKey == null));
         }
 
-        var cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        var cipher = Cipher.getInstance("AES/CBC/NoPadding");
         cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(iv));
 
         return cipher.doFinal(cipherText);

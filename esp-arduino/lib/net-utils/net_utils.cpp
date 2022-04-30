@@ -338,17 +338,30 @@ static void performClientFinish(const char *publicParams, const char *signature,
 
   const auto generatedSecret = crypto::generateSharedSecret(ecdhParams, point);
 
+  ESP_LOGI(TAG, "Test bytes: %s", test);
+
   size_t     testLength = 0;
   const auto testBytes  = crypto::decodeBase64((uint8_t *)test, testLength);
 
-  const auto iv = crypto::generateRandomSequence(KEY_SIZE / 2);
+  const auto iv       = crypto::generateRandomSequence(KEY_SIZE / 2);
+  size_t     ivLength = 0;
+  const auto ivBase64 = crypto::encodeBase64(iv.get(), KEY_SIZE / 2, ivLength);
+
+  ESP_LOGI(TAG, "IV: %s", ivBase64.c_str());
+
+  uint8_t payload[KEY_SIZE] = "";
+  memcpy(payload, iv.get(),
+         KEY_SIZE / 2); // before encryption since the IV is mutated!
+
+  size_t     outputLength2 = 0;
+  const auto keyEncoded =
+      crypto::encodeBase64(generatedSecret.get(), 32, outputLength2);
+  ESP_LOGI(TAG, "Key: %s", keyEncoded.c_str());
 
   uint16_t   cipherTextSize = 0;
   const auto cipherText     = crypto::encryptAes(
           testBytes.get(), generatedSecret.get(), iv.get(), cipherTextSize);
 
-  uint8_t payload[KEY_SIZE] = "";
-  memcpy(payload, iv.get(), KEY_SIZE / 2);
   memcpy(payload + KEY_SIZE / 2, cipherText.get(), KEY_SIZE / 2);
 
   size_t     outputLength = 0;
@@ -361,11 +374,6 @@ static void performClientFinish(const char *publicParams, const char *signature,
   client.addHeader("Content-Type", "text/plain");
   ESP_LOGI(TAG, "Post to %s", endpoint.c_str());
   ESP_LOGI(TAG, "Post data: %s", payloadEncoded.c_str());
-
-  size_t     outputLength2 = 0;
-  const auto keyEncoded =
-      crypto::encodeBase64(generatedSecret.get(), 32, outputLength2);
-  ESP_LOGI(TAG, "Key: %s", keyEncoded.c_str());
 
   const auto statusCode = client.POST(payloadEncoded);
   ESP_LOGI(TAG, "Server responded %d", statusCode);

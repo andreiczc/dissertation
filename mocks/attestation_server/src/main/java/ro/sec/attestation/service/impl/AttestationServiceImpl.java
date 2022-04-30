@@ -135,6 +135,7 @@ public class AttestationServiceImpl implements AttestationService {
         var sessionKey = secretStore.retrieve(clientAddress);
 
         var secretBytes = testBytesMap.remove(clientAddress);
+        var test = CryptoUtils.encryptAes(secretBytes, iv, sessionKey);
         var decrypted = CryptoUtils.decryptAes(ciphertext, iv, sessionKey);
 
         if(!Arrays.equals(secretBytes, decrypted)) {

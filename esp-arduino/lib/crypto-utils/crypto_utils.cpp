@@ -1,7 +1,7 @@
 #include "crypto_utils.h"
 
 #include "esp_log.h"
-#include "hwcrypto/aes.h"
+#include "mbedtls/aes.h"
 #include "mbedtls/base64.h"
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/ecdsa.h"
@@ -103,40 +103,26 @@ std::unique_ptr<uint8_t[]> encryptAes(uint8_t *input, uint8_t *key, uint8_t *iv,
 
   const auto inputLength = strlen((char *)input);
   ESP_LOGI(TAG, "Plaintext size: %d", inputLength);
-  ESP_LOG_BUFFER_HEX(TAG, key, KEY_SIZE);
-  ESP_LOG_BUFFER_HEX(TAG, iv, BLOCK_SIZE);
 
-  outputSize = inputLength % BLOCK_SIZE == 0
-                   ? inputLength
-                   : inputLength + (BLOCK_SIZE - inputLength % BLOCK_SIZE);
-
+  outputSize = inputLength;
   std::unique_ptr<uint8_t[]> output(new uint8_t[outputSize]);
 
-  esp_aes_context context;
-  esp_aes_init(&context);
-  esp_aes_setkey(&context, key, KEY_SIZE * 8);
+  mbedtls_aes_context context;
+  mbedtls_aes_init(&context);
+  mbedtls_aes_setkey_enc(&context, key, KEY_SIZE * 8);
 
-  int returnValue = 0;
+  auto returnValue = mbedtls_aes_crypt_cbc(
+      &context, MBEDTLS_AES_ENCRYPT, inputLength, iv, input, output.get());
 
-  if (outputSize != inputLength)
-  {
-    ESP_LOGI(TAG, "Input will be padded PKCS5");
-    auto paddedInput = padPkcs5(input, inputLength, outputSize);
-    ESP_LOG_BUFFER_HEX(TAG, paddedInput.get(), outputSize);
-
-    returnValue = esp_aes_crypt_cbc(&context, ESP_AES_ENCRYPT, outputSize, iv,
-                                    paddedInput.get(), output.get());
-  }
-  else
-  {
-    returnValue = esp_aes_crypt_cbc(&context, ESP_AES_ENCRYPT, outputSize, iv,
-                                    input, output.get());
-  }
-
-  esp_aes_free(&context);
+  mbedtls_aes_free(&context);
 
   ESP_LOGI(TAG, "Encrypt return value: %d", returnValue);
   ESP_LOG_BUFFER_HEX(TAG, output.get(), outputSize);
+
+  size_t     base64Length = 0;
+  const auto cipherTextBase64 =
+      crypto::encodeBase64(output.get(), outputSize, base64Length);
+  ESP_LOGI(TAG, "Ciphertext: %s", cipherTextBase64.c_str());
 
   return std::move(output);
 }
