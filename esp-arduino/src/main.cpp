@@ -22,6 +22,7 @@ void setup()
   ESP_LOGI(TAG, "Starting setup");
 
   NetUtils::startWifi();
+  NetUtils::checkAttestation();
 }
 
 void loop()

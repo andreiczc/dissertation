@@ -7,6 +7,7 @@
 
 #include "esp_log.h"
 #include "esp_wifi.h"
+#include "spiffs_utils.h"
 #include <SPIFFS.h>
 #include <WiFi.h>
 
@@ -175,4 +176,42 @@ void NetUtils::startWifi()
   }
 
   ESP_LOGI(TAG, "Connection successful");
+}
+
+static bool checkExistingKey(const std::string &content)
+{
+  /* TODO add signature check
+   format:
+   key(hex) timestamp
+   signature
+   */
+
+  if (content.empty())
+  {
+    return false;
+  }
+}
+
+static void performAttestationProcess() {}
+
+static bool checkAttestationStatus()
+{
+  auto       spiffs  = SpiffsUtils::getInstance();
+  const auto content = spiffs->readText("/secret.key");
+
+  return checkExistingKey(content);
+}
+
+void attestDevice()
+{
+  // TODO add rtos task to check key each hour
+
+  ESP_LOGI(TAG, "Checking attestation status");
+
+  if (checkAttestationStatus())
+  {
+    return;
+  }
+
+  performAttestationProcess();
 }
