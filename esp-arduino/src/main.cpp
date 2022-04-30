@@ -16,13 +16,17 @@ static std::string dataString =
     "000000000000000000000000000000000000000000000000000000000868756d69646974"
     "79000000000000000000000000000000000000000000000000";
 
+// MEMBERS
+static esp_mqtt_client_handle_t mqttClient;
+
 void setup()
 {
   Serial.begin(115200);
   ESP_LOGI(TAG, "Starting setup");
 
   NetUtils::startWifi();
-  NetUtils::attestDevice();
+  // NetUtils::attestDevice();
+  mqttClient = NetUtils::initMqttConnection();
 }
 
 void loop()
