@@ -13,6 +13,8 @@ extern const uint8_t device_crt_start[] asm("_binary_device_crt_start");
 extern const uint8_t device_crt_end[] asm("_binary_device_crt_end");
 extern const uint8_t device_key_start[] asm("_binary_device_key_start");
 extern const uint8_t device_key_end[] asm("_binary_device_key_end");
+extern const uint8_t wallet_key_start[] asm("_binary_wallet_key_start");
+extern const uint8_t wallet_key_end[] asm("_binary_wallet_key_end");
 
 static void init()
 {
@@ -88,19 +90,24 @@ extern "C" void app_main()
 
   auto generated1 = crypto::generateSharedSecret(ctx1, point); */
 
-  /* uint8_t   *message       = (uint8_t *)"hello";
+  uint8_t   *message       = (uint8_t *)"hello";
   const auto messageLength = 4;
 
   size_t     signatureLength = 0;
   const auto signature       = crypto::signEcdsa(
-            message, messageLength, signatureLength, device_key_start,
-  KEY_SIZE); ESP_LOG_BUFFER_HEX(TAG, signature.get(), signatureLength);
+            message, messageLength, signatureLength, wallet_key_start, KEY_SIZE);
+  ESP_LOG_BUFFER_HEX(TAG, signature.get(), signatureLength);
 
-  const auto verifies =
+  /* const auto verifies =
       crypto::verifyEcdsa(message, messageLength, signature.get(),
                           signatureLength, device_crt_start, CRT_SIZE);
   ESP_LOGI(TAG, "Signatures verfies: %s", verifies ? "YES" : "NO"); */
 
-  const auto netUtils = NetUtils::getInstance();
+  /* const auto netUtils = NetUtils::getInstance();
   netUtils->startWifi();
+
+  const auto functionSignature = "insertEntry(string,uint256)";
+  const auto digest            = crypto::keccak256((uint8_t *)functionSignature,
+                                                   strlen(functionSignature));
+*/
 }

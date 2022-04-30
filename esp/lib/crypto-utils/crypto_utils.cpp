@@ -12,9 +12,15 @@
 #include <cstring>
 #include <functional>
 
-#define KEY_SIZE   32
-#define BLOCK_SIZE 16
-#define SHA_384    1
+extern "C"
+{
+#include "sha3.h"
+}
+
+#define KEY_SIZE          32
+#define BLOCK_SIZE        16
+#define SHA_384           1
+#define KECCAK_SIZE_BYTES 32
 
 namespace crypto
 {
@@ -176,7 +182,7 @@ mbedtls_ecdh_context generateEcdhParams()
   mbedtls_entropy_init(&entropy);
 
   auto returnValue =
-      mbedtls_ecp_group_load(&context.grp, MBEDTLS_ECP_DP_BP256R1);
+      mbedtls_ecp_group_load(&context.grp, MBEDTLS_ECP_DP_SECP256K1);
   ESP_LOGI(TAG, "mbedtls_ecp_group_load return code: %d", returnValue);
 
   returnValue = mbedtls_ctr_drbg_seed(&ctrDrbg, mbedtls_entropy_func, &entropy,
@@ -287,12 +293,12 @@ std::unique_ptr<uint8_t[]> signEcdsa(uint8_t *message, size_t messageLength,
   returnCode = mbedtls_ecdsa_from_keypair(&context, keyPair);
   ESP_LOGI(TAG, "mbedtls_ecdsa_from_keypair return code: %d", returnCode);
 
-  auto digest = computeSha384(message, messageLength);
+  auto digest = keccak256(message, messageLength);
 
   // TODO use from keypair... check docs
   std::unique_ptr<uint8_t[]> result(new uint8_t[80]);
   returnCode = mbedtls_ecdsa_write_signature(
-      &context, MBEDTLS_MD_SHA384, digest.get(), 64, result.get(),
+      &context, MBEDTLS_MD_SHA256, digest.get(), 32, result.get(),
       &signatureLength, mbedtls_ctr_drbg_random, &ctrDrbg);
   ESP_LOGI(TAG, "mbedtls_ecdsa_write_signature return code: %d", returnCode);
   ESP_LOGI(TAG, "Signature length: %d", signatureLength);
@@ -322,7 +328,7 @@ bool verifyEcdsa(uint8_t *message, size_t messageLength, uint8_t *signature,
   ESP_LOGI(TAG, "mbedtls_pk_parse_key return code: %d", returnCode);
   auto *keyPair = mbedtls_pk_ec(pkContext);
 
-  returnCode = mbedtls_ecp_group_load(&context.grp, MBEDTLS_ECP_DP_BP256R1);
+  returnCode = mbedtls_ecp_group_load(&context.grp, MBEDTLS_ECP_DP_SECP256K1);
   ESP_LOGI(TAG, "mbedtls_ecp_group_load return code: %d", returnCode);
 
   returnCode = mbedtls_ecdsa_from_keypair(&context, keyPair);
@@ -338,5 +344,15 @@ bool verifyEcdsa(uint8_t *message, size_t messageLength, uint8_t *signature,
   mbedtls_pk_free(&pkContext);
 
   return returnCode == 0;
+}
+
+std::unique_ptr<uint8_t[]> keccak256(uint8_t *message, size_t length)
+{
+  std::unique_ptr<uint8_t[]> result(new uint8_t[KECCAK_SIZE_BYTES]);
+
+  sha3_HashBuffer(KECCAK_SIZE_BYTES * 8, SHA3_FLAGS_KECCAK, message, length,
+                  result.get(), KECCAK_SIZE_BYTES);
+
+  return result;
 }
 } // end namespace crypto
