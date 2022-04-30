@@ -300,12 +300,29 @@ static void performClientFinish(const char *publicParams, const char *signature,
   const auto decodedSignature =
       crypto::decodeBase64((uint8_t *)signature, signatureLength);
 
-  const auto certificateLength = strlen((char *)serverCertficate);
-  ESP_LOGI(TAG, "Server certificate:\n%s", serverCertficate);
-  ESP_LOGI(TAG, "Certificate length: %d", certificateLength);
+  mbedtls_ecp_point point;
+  mbedtls_ecp_point_init(&point);
+
+  mbedtls_mpi_init(&point.X);
+  mbedtls_mpi_init(&point.Y);
+  mbedtls_mpi_init(&point.Z);
+
+  uint8_t ptX[32] = {0x0e, 0xdd, 0xa5, 0xe3, 0xbd, 0x71, 0x4e, 0x76,
+                     0xc3, 0x6b, 0xee, 0x70, 0x13, 0x05, 0xc0, 0x7e,
+                     0x59, 0xdf, 0x35, 0x4e, 0x78, 0x46, 0xa3, 0xf8,
+                     0x43, 0x1b, 0xfa, 0xf8, 0x69, 0x26, 0x87, 0x5e};
+  mbedtls_mpi_read_binary(&point.X, ptX, 32);
+
+  uint8_t ptY[32] = {0x25, 0xa6, 0x72, 0xa8, 0x98, 0x23, 0x54, 0xa0,
+                     0x19, 0xe9, 0x4f, 0x15, 0xa6, 0x20, 0x27, 0xc9,
+                     0x24, 0xf9, 0x05, 0xee, 0x8c, 0x70, 0x66, 0x9d,
+                     0x0e, 0x24, 0x11, 0x80, 0x7a, 0x6d, 0x43, 0x9e};
+  mbedtls_mpi_read_binary(&point.Y, ptY, 32);
+
+  mbedtls_mpi_lset(&point.Z, 1);
+
   crypto::verifyEcdsa(decodedPublicParams.get(), paramsLength,
-                      decodedSignature.get(), signatureLength, serverCertficate,
-                      certificateLength);
+                      decodedSignature.get(), signatureLength, point);
 }
 
 static void performAttestationProcess()
