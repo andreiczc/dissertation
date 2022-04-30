@@ -39,8 +39,6 @@ async function main() {
   );
   const signer = web3.eth.accounts.privateKeyToAccount(privateKey);
   web3.eth.accounts.wallet.add(signer);
-
-  const nonce = "0x9";
   const types = ["string", "uint256"];
   const values = [
     "68756D6964697479",
