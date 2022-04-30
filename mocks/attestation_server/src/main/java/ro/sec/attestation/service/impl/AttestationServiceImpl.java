@@ -18,6 +18,9 @@ import ro.sec.attestation.web.dto.ClientPayload;
 import ro.sec.attestation.web.dto.ServerPayload;
 import ro.sec.crypto.CryptoUtils;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
@@ -25,6 +28,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class AttestationServiceImpl implements AttestationService {
@@ -34,18 +38,16 @@ public class AttestationServiceImpl implements AttestationService {
 
     private final SecureStore secretStore;
     private final SecureStore pskStore;
-    private final Certificate certificate;
+    private final String certificate;
     private final PrivateKey privateKey;
     private final Map<String, Certificate> certificateMap;
     private final Map<String, byte[]> testBytesMap;
 
     @Autowired
     public AttestationServiceImpl() throws Exception {
-        try (var ownCertificateInputStream = Application.class.getClassLoader().getResourceAsStream("server.crt");
+        try (var ownCertificateInputStream = new BufferedReader(new InputStreamReader(Application.class.getClassLoader().getResourceAsStream("server.crt")));
              var privateKeyInputStream = Application.class.getClassLoader().getResourceAsStream("server.key")) {
-            this.certificate = CertificateFactory
-                    .getInstance("X.509")
-                    .generateCertificate(ownCertificateInputStream);
+            this.certificate = ownCertificateInputStream.lines().collect(Collectors.joining("\n"));
             var privateKeyBytes = privateKeyInputStream.readAllBytes();
             this.privateKey = CryptoUtils.readPrivateKey(privateKeyBytes);
         }
@@ -68,7 +70,7 @@ public class AttestationServiceImpl implements AttestationService {
                 certificate
         );
 
-        return Base64.getEncoder().encode(certificate.getEncoded());
+        return Base64.getEncoder().encode(this.certificate.getBytes());
     }
 
     @Override

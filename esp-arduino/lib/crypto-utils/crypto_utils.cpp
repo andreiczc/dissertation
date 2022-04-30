@@ -20,32 +20,28 @@ namespace crypto
 {
 static auto *TAG = "CRYPTO";
 
-String encodeBase64(uint8_t *input)
+String encodeBase64(uint8_t *input, size_t inputLength, size_t &outputLength)
 {
-  const auto inputLength = strlen((char *)input);
-
   std::unique_ptr<uint8_t[]> returnValue(new uint8_t[3 * inputLength]);
 
-  size_t actualLength = 0;
-  mbedtls_base64_encode(returnValue.get(), 3 * inputLength, &actualLength,
+  mbedtls_base64_encode(returnValue.get(), 3 * inputLength, &outputLength,
                         input, inputLength);
 
-  returnValue.get()[actualLength] = 0;
+  returnValue.get()[outputLength] = 0;
 
   return String((char *)returnValue.get());
 }
 
-std::unique_ptr<uint8_t[]> decodeBase64(uint8_t *input)
+std::unique_ptr<uint8_t[]> decodeBase64(uint8_t *input, size_t &outputLength)
 {
   const auto inputLength = strlen((char *)input);
 
   std::unique_ptr<uint8_t[]> returnValue(new uint8_t[inputLength]);
 
-  size_t actualLength = 0;
-  mbedtls_base64_decode(returnValue.get(), 3 * inputLength, &actualLength,
+  mbedtls_base64_decode(returnValue.get(), 3 * inputLength, &outputLength,
                         input, inputLength);
 
-  returnValue.get()[actualLength] = 0;
+  returnValue.get()[outputLength] = 0;
 
   return std::move(returnValue);
 }
@@ -314,7 +310,7 @@ bool verifyEcdsa(uint8_t *message, size_t messageLength, uint8_t *signature,
 
   auto returnCode =
       mbedtls_pk_parse_public_key(&pkContext, publicKey, publicKeyLength);
-  ESP_LOGI(TAG, "mbedtls_pk_parse_key return code: %d", returnCode);
+  ESP_LOGI(TAG, "mbedtls_pk_parse_public_key return code: %d", returnCode);
   auto *keyPair = mbedtls_pk_ec(pkContext);
 
   returnCode = mbedtls_ecp_group_load(&context.grp, MBEDTLS_ECP_DP_BP256R1);
