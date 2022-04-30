@@ -34,8 +34,6 @@ std::unique_ptr<uint8_t[]> signEcdsa(uint8_t *message, size_t messageLength,
 bool verifyEcdsa(uint8_t *message, size_t messageLength, uint8_t *signature,
                  size_t signatureLength, const uint8_t *publicKey,
                  size_t publicKeyLength);
-
-std::unique_ptr<uint8_t[]> keccak256(uint8_t *message, size_t length);
 } // end namespace crypto
 
 #endif // _CRYPTO_UTILS_H
