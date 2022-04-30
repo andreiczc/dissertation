@@ -10,9 +10,7 @@
 #define ENV_WIFI_KEY "180898Delia!"
 
 // CONSTANTS
-static constexpr auto *TAG         = "MAIN";
-static constexpr auto *INFURA_HOST = "ropsten.infura.io";
-static constexpr auto *INFURA_PATH = "/v3/8297ac153d3948b78c03d2aff759abef";
+static constexpr auto *TAG = "MAIN";
 static constexpr auto *CONTRACT_ADDRESS =
     "0x14cAfcCc3c0857A9281A22E4b74E770A99c29cB1";
 static std::string dataString =
@@ -20,9 +18,6 @@ static std::string dataString =
     "400000000000000000000000000000000000000000000000000000000000000039000000"
     "000000000000000000000000000000000000000000000000000000000868756d69646974"
     "79000000000000000000000000000000000000000000000000";
-
-// MEMBERS
-static Web3Client client(INFURA_HOST, INFURA_PATH);
 
 void setup()
 {
@@ -36,7 +31,7 @@ void setup()
   }
 
   ESP_LOGI(TAG, "WiFi connection successfull");
-  client.callContract(CONTRACT_ADDRESS, dataString);
+  blockchain::callContract(CONTRACT_ADDRESS, dataString);
 }
 
 void loop()
