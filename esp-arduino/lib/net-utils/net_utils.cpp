@@ -5,13 +5,23 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
+#include "crypto_utils.h"
 #include "esp_log.h"
 #include "esp_wifi.h"
 #include "spiffs_utils.h"
+#include <HTTPClient.h>
 #include <SPIFFS.h>
 #include <WiFi.h>
 
+#define KEY_SIZE 32
+
 static constexpr auto *TAG = "NET";
+
+static const String ATTESTATION_SERVER =
+    "http://192.168.0.180:8080/attestation/";
+static const String CLIENT_HELLO_ENDPOINT    = "clientHello";
+static const String KEY_EXCHANGE_ENDPOINT    = "keyExchange";
+static const String CLIENT_FINISHED_ENDPOINT = "clientFinished";
 
 static String createNetworkList()
 {
@@ -192,7 +202,76 @@ static bool checkExistingKey(const std::string &content)
   }
 }
 
-static void performAttestationProcess() {}
+static void performAttestationProcess()
+{
+  ESP_LOGI(TAG, "Starting the attestation process");
+
+  HTTPClient client;
+  auto       endpoint = ATTESTATION_SERVER + CLIENT_HELLO_ENDPOINT;
+  client.begin(endpoint);
+
+  ESP_LOGI(TAG, "Post to %s", endpoint.c_str());
+  auto statusCode = client.POST(
+      "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNJekNDQWNxZ0F3SUJBZ0lVTFA2Yjhm"
+      "VGM0ZGxpMHlMZGM0c3pjNVZGWWlVd0NnWUlLb1pJemowRUF3SXcKWnpFTE1Ba0dBMVVFQmhN"
+      "Q1VrOHhFREFPQmdOVkJBZ01CMUp2YldGdWFXRXhFakFRQmdOVkJBY01DVUoxWTJoaApjbVZ6"
+      "ZERFaE1COEdBMVVFQ2d3WVNXNTBaWEp1WlhRZ1YybGtaMmwwY3lCUWRIa2dUSFJrTVE4d0RR"
+      "WURWUVFECkRBWmtkMkZrZDJFd0hoY05Nakl3TXpJMU1Ea3lPREkyV2hjTk1qTXdNekl3TURr"
+      "eU9ESTJXakJuTVFzd0NRWUQKVlFRR0V3SlNUekVRTUE0R0ExVUVDQXdIVW05dFlXNXBZVEVT"
+      "TUJBR0ExVUVCd3dKUW5WamFHRnlaWE4wTVNFdwpId1lEVlFRS0RCaEpiblJsY201bGRDQlhh"
+      "V1JuYVhSeklGQjBlU0JNZEdReER6QU5CZ05WQkFNTUJtUjNZV1IzCllUQmFNQlFHQnlxR1NN"
+      "NDlBZ0VHQ1Nza0F3TUNDQUVCQndOQ0FBUUtvTTlnVXdYbGdGa2EvL2o0N2p5eTdNeTQKWjRC"
+      "YVdMbmdZSmkzdVVtZ2ZGangxc1l2blhrQXcyVHN0MDFuTTJLMGIrU2laZTVJU3h2RmxmMkJv"
+      "dkZPbzFNdwpVVEFkQmdOVkhRNEVGZ1FVWCsyTFNtOFNjeEllZExKMmVlaGJlUWNHMXg4d0h3"
+      "WURWUjBqQkJnd0ZvQVVYKzJMClNtOFNjeEllZExKMmVlaGJlUWNHMXg4d0R3WURWUjBUQVFI"
+      "L0JBVXdBd0VCL3pBS0JnZ3Foa2pPUFFRREFnTkgKQURCRUFpQWtOK1BBdVpDTWxJWFhFWlZt"
+      "a1JPMHN2RHdONHJvVUVXSXNDVGFnTFBqa1FJZ1hEd0M2NHZUR1N6UwpWdFRPN0VJK0tVZVJp"
+      "dkRSOFdNendQWXFOUXRpZ3JZPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==");
+
+  ESP_LOGI(TAG, "Server responded %d", statusCode);
+  const auto serverCertificate =
+      crypto::decodeBase64((uint8_t *)client.getString().c_str());
+
+  ESP_LOGI(TAG, "Server certificate has been decoded");
+  const auto ecdhParams = crypto::generateEcdhParams();
+
+  ESP_LOGI(TAG, "DH params have been generated");
+  uint8_t buffer[KEY_SIZE * 2 + 1];
+  buffer[0] = 0x04;
+  mbedtls_mpi_write_binary(&ecdhParams.Q.X, buffer, KEY_SIZE);
+  mbedtls_mpi_write_binary(&ecdhParams.Q.Y, buffer + KEY_SIZE, KEY_SIZE);
+
+  const auto encodedParams = crypto::encodeBase64(buffer);
+  ESP_LOGI(TAG, "Encoded DH params: %s", encodedParams.c_str());
+
+  uint8_t privateKey[] = {
+      0x30, 0x78, 0x02, 0x01, 0x01, 0x04, 0x20, 0x55, 0x49, 0x96, 0x60, 0xc5,
+      0x9b, 0x1a, 0xa4, 0xfa, 0x77, 0xdc, 0xe3, 0x70, 0xc3, 0xfa, 0xf5, 0x11,
+      0xd4, 0x66, 0x63, 0x71, 0xf5, 0xf3, 0x1c, 0x4a, 0x19, 0x88, 0x20, 0xfa,
+      0x04, 0x8f, 0x01, 0xa0, 0x0b, 0x06, 0x09, 0x2b, 0x24, 0x03, 0x03, 0x02,
+      0x08, 0x01, 0x01, 0x07, 0xa1, 0x44, 0x03, 0x42, 0x00, 0x04, 0x86, 0x0d,
+      0x56, 0x42, 0x66, 0xdf, 0xe6, 0x94, 0xb3, 0xa8, 0xab, 0x8b, 0x68, 0xe2,
+      0xa3, 0xe4, 0xd8, 0x2a, 0xfd, 0xa1, 0xb0, 0x2e, 0xe3, 0xa8, 0xe8, 0x95,
+      0x25, 0xb9, 0x81, 0xb4, 0xb0, 0x6c, 0x45, 0x5e, 0xe8, 0x1c, 0x19, 0xf7,
+      0x56, 0xd4, 0xa9, 0xd5, 0x75, 0xaa, 0xc6, 0x7e, 0xda, 0xb4, 0xcd, 0x52,
+      0x16, 0x42, 0x39, 0x59, 0x94, 0xe8, 0x81, 0xc6, 0xb8, 0xbb, 0x11, 0xff,
+      0xa9, 0x4a};
+  size_t     signatureLength;
+  const auto signature = crypto::signEcdsa(buffer, KEY_SIZE * 2 + 1,
+                                           signatureLength, privateKey, 122);
+
+  const auto signatureEncoded = crypto::encodeBase64(signature.get());
+
+  String payload = "{\"publicParams\":" + encodedParams +
+                   ",\"signature\":" + signatureEncoded.c_str() + "}";
+
+  endpoint = ATTESTATION_SERVER + KEY_EXCHANGE_ENDPOINT;
+  client.begin(endpoint);
+
+  ESP_LOGI(TAG, "Post to %s", endpoint.c_str());
+  statusCode = client.POST(payload.c_str());
+  ESP_LOGI(TAG, "Server responded %d", statusCode);
+}
 
 static bool checkAttestationStatus()
 {
@@ -202,7 +281,7 @@ static bool checkAttestationStatus()
   return checkExistingKey(content);
 }
 
-void attestDevice()
+void NetUtils::attestDevice()
 {
   // TODO add rtos task to check key each hour
 

@@ -3,11 +3,12 @@
 
 #include "mbedtls/ecdh.h"
 #include "mbedtls/x509_crt.h"
+#include <Arduino.h>
 #include <memory>
 
 namespace crypto
 {
-std::unique_ptr<uint8_t[]> encodeBase64(uint8_t *input);
+String encodeBase64(uint8_t *input);
 
 std::unique_ptr<uint8_t[]> decodeBase64(uint8_t *input);
 

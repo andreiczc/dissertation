@@ -20,7 +20,7 @@ namespace crypto
 {
 static auto *TAG = "CRYPTO";
 
-std::unique_ptr<uint8_t[]> encodeBase64(uint8_t *input)
+String encodeBase64(uint8_t *input)
 {
   const auto inputLength = strlen((char *)input);
 
@@ -32,7 +32,7 @@ std::unique_ptr<uint8_t[]> encodeBase64(uint8_t *input)
 
   returnValue.get()[actualLength] = 0;
 
-  return std::move(returnValue);
+  return String((char *)returnValue.get());
 }
 
 std::unique_ptr<uint8_t[]> decodeBase64(uint8_t *input)
@@ -186,11 +186,6 @@ mbedtls_ecdh_context generateEcdhParams()
   returnValue = mbedtls_ecdh_gen_public(&context.grp, &context.d, &context.Q,
                                         mbedtls_ctr_drbg_random, &ctrDrbg);
   ESP_LOGI(TAG, "mbedtls_ecdh_gen_public return code: %d", returnValue);
-
-  uint8_t buffer[KEY_SIZE];
-  returnValue = mbedtls_mpi_write_binary(&context.Q.X, buffer, KEY_SIZE);
-  ESP_LOGI(TAG, "mbedtls_mpi_write_binary return code: %d", returnValue);
-  ESP_LOG_BUFFER_HEX(TAG, buffer, KEY_SIZE);
 
   mbedtls_entropy_free(&entropy);
   mbedtls_ctr_drbg_free(&ctrDrbg);

@@ -40,7 +40,7 @@ public class Controller {
     @PostMapping(CLIENT_FINISHED_RSC)
     public ResponseEntity<Void> clientFinished(@RequestBody String payload) throws Exception {
         service.clientFinish(payload);
-        
+
         return ResponseEntity.ok().body(null);
     }
 }
