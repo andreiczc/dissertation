@@ -20,6 +20,7 @@ import ro.sec.crypto.CryptoUtils;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
+import java.security.interfaces.ECPublicKey;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
@@ -67,7 +68,13 @@ public class AttestationServiceImpl implements AttestationService {
                 certificate
         );
 
-        return Base64.getEncoder().encode(CryptoUtils.packagePublicEcPoint((BCECPublicKey) certificate.getPublicKey()));
+        var x = ((ECPublicKey)certificate.getPublicKey()).getW().getAffineX().toByteArray();
+        x = Arrays.copyOfRange(x, 1, x.length);
+        var y = ((ECPublicKey)certificate.getPublicKey()).getW().getAffineY().toByteArray();
+
+        var result = Arrays.copyOf(x, x.length + y.length);
+        System.arraycopy(y, 0, result, x.length, y.length);
+        return Base64.getEncoder().encode(result);
     }
 
     @Override
