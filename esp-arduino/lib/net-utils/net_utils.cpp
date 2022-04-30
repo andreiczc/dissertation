@@ -229,12 +229,12 @@ static std::unique_ptr<uint8_t[]> performClientHello()
 
   ESP_LOGI(TAG, "Server responded %d", statusCode);
   size_t length = 0;
-  auto   serverCertificate =
+  auto   serverPoint =
       crypto::decodeBase64((uint8_t *)client.getString().c_str(), length);
 
   ESP_LOGI(TAG, "Server certificate has been decoded");
 
-  return std::move(serverCertificate);
+  return std::move(serverPoint);
 }
 
 static String performKeyExchange()
@@ -289,8 +289,7 @@ static String performKeyExchange()
 }
 
 static void performClientFinish(const char *publicParams, const char *signature,
-                                const char    *test,
-                                const uint8_t *serverCertficate)
+                                const char *test, const uint8_t *serverPoint)
 {
   size_t     paramsLength = 0;
   const auto decodedPublicParams =
@@ -307,17 +306,13 @@ static void performClientFinish(const char *publicParams, const char *signature,
   mbedtls_mpi_init(&point.Y);
   mbedtls_mpi_init(&point.Z);
 
-  uint8_t ptX[32] = {0x9E, 0x96, 0xE8, 0xCE, 0x84, 0xD3, 0x55, 0x13,
-                     0x53, 0x52, 0xFA, 0x38, 0x1A, 0xC0, 0xFD, 0xC,
-                     0x8B, 0xCE, 0xDE, 0x40, 0x9F, 0x6A, 0x18, 0x85,
-                     0xF,  0x3E, 0xE4, 0xF5, 0xEF, 0x4,  0x37, 0x96};
-  mbedtls_mpi_read_binary(&point.X, ptX, 32);
+  uint8_t ptX[KEY_SIZE] = "";
+  memcpy(ptX, serverPoint, KEY_SIZE);
+  mbedtls_mpi_read_binary(&point.X, ptX, KEY_SIZE);
 
-  uint8_t ptY[32] = {0x30, 0xDA, 0xAE, 0xB,  0xD9, 0xD8, 0x2A, 0x84,
-                     0xC1, 0x13, 0xAE, 0xFD, 0xEA, 0x1D, 0x15, 0x6B,
-                     0x93, 0x5C, 0x57, 0xE0, 0xA8, 0xD2, 0xF3, 0xB4,
-                     0xD3, 0xDD, 0xCD, 0x24, 0xAA, 0x49, 0x28, 0x17};
-  mbedtls_mpi_read_binary(&point.Y, ptY, 32);
+  uint8_t ptY[KEY_SIZE] = "";
+  memcpy(ptY, serverPoint + KEY_SIZE, KEY_SIZE);
+  mbedtls_mpi_read_binary(&point.Y, ptY, KEY_SIZE);
 
   mbedtls_mpi_lset(&point.Z, 1);
 
@@ -329,8 +324,8 @@ static void performAttestationProcess()
 {
   ESP_LOGI(TAG, "Starting the attestation process");
 
-  const auto serverCertificate = performClientHello();
-  const auto serverPayload     = performKeyExchange();
+  const auto serverPoint   = performClientHello();
+  const auto serverPayload = performKeyExchange();
 
   auto       *root = cJSON_Parse(serverPayload.c_str());
   const auto *publicParams =
@@ -338,7 +333,7 @@ static void performAttestationProcess()
   const auto *signature = cJSON_GetObjectItem(root, "signature")->valuestring;
   const auto *test      = cJSON_GetObjectItem(root, "test")->valuestring;
 
-  performClientFinish(publicParams, signature, test, serverCertificate.get());
+  performClientFinish(publicParams, signature, test, serverPoint.get());
 }
 
 static bool checkAttestationStatus()
