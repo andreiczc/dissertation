@@ -9,7 +9,6 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import ro.sec.attestation.Application;
 import ro.sec.attestation.repo.SecureStore;
-import ro.sec.attestation.repo.SecureStoreInMemory;
 import ro.sec.attestation.service.api.AttestationService;
 import ro.sec.attestation.service.exception.BadSignatureException;
 import ro.sec.attestation.service.exception.BadTestBytesException;
@@ -17,6 +16,7 @@ import ro.sec.attestation.web.dto.ClientPayload;
 import ro.sec.attestation.web.dto.ServerPayload;
 import ro.sec.crypto.CryptoUtils;
 
+import javax.crypto.SecretKey;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
@@ -32,7 +32,7 @@ public class AttestationServiceImpl implements AttestationService {
     private static final Logger log = LoggerFactory.getLogger(AttestationServiceImpl.class);
     private static final int TEST_BYTES_LENGTH = 16;
 
-    private final SecureStore secretStore;
+    private final Map<String, SecretKey> secretStore;
     private final SecureStore pskStore;
     private final Certificate certificate;
     private final PrivateKey privateKey;
@@ -40,7 +40,7 @@ public class AttestationServiceImpl implements AttestationService {
     private final Map<String, byte[]> testBytesMap;
 
     @Autowired
-    public AttestationServiceImpl() throws Exception {
+    public AttestationServiceImpl(SecureStore pskStore) throws Exception {
         try (var ownCertificateInputStream = Application.class.getClassLoader().getResourceAsStream("server.crt");
              var privateKeyInputStream = Application.class.getClassLoader().getResourceAsStream("server.key")) {
             this.certificate = CertificateFactory
@@ -52,8 +52,8 @@ public class AttestationServiceImpl implements AttestationService {
 
         this.certificateMap = new HashMap<>();
         this.testBytesMap = new HashMap<>();
-        this.secretStore = new SecureStoreInMemory();
-        this.pskStore = new SecureStoreInMemory();
+        this.secretStore = new HashMap<>();
+        this.pskStore = pskStore;
     }
 
     @Override
@@ -120,7 +120,7 @@ public class AttestationServiceImpl implements AttestationService {
         var sharedSecret = CryptoUtils
                 .generateSharedSecret(ownKeyPair.getPrivate(), thirdPartyPublicKey);
         log.info("Shared secret for {} was generated successfully", clientAddress);
-        secretStore.store(clientAddress, sharedSecret);
+        secretStore.put(clientAddress, sharedSecret);
 
         return serverPayload;
     }
@@ -132,10 +132,9 @@ public class AttestationServiceImpl implements AttestationService {
 
         var iv = Arrays.copyOfRange(payload, 0, 16);
         var ciphertext = Arrays.copyOfRange(payload, 16, payload.length);
-        var sessionKey = secretStore.retrieve(clientAddress);
+        var sessionKey = secretStore.remove(clientAddress);
 
         var secretBytes = testBytesMap.remove(clientAddress);
-        var test = CryptoUtils.encryptAes(secretBytes, iv, sessionKey);
         var decrypted = CryptoUtils.decryptAes(ciphertext, iv, sessionKey);
 
         if(!Arrays.equals(secretBytes, decrypted)) {

@@ -10,21 +10,31 @@
 #include "esp_log.h"
 #include "esp_tls.h"
 #include "esp_wifi.h"
+#include "sensor_utils.h"
 #include "spiffs_utils.h"
 #include <HTTPClient.h>
 #include <SPIFFS.h>
+#include <vector>
 
 #define KEY_SIZE 32
 
 // TODO add certificate checks in esp and server
 
-static constexpr auto *TAG = "NET";
-
-static const String ATTESTATION_SERVER =
-    "http://192.168.0.180:8080/attestation/";
+// CONSTANTS
+static constexpr auto *TAG         = "NET";
+static constexpr auto *MQTT_SERVER = "mqtts://130.162.253.10:8883";
+static const String    ATTESTATION_SERVER =
+    "http://130.162.253.10:8080/attestation/";
 static const String CLIENT_HELLO_ENDPOINT    = "clientHello";
 static const String KEY_EXCHANGE_ENDPOINT    = "keyExchange";
 static const String CLIENT_FINISHED_ENDPOINT = "clientFinished";
+
+static const std::vector<SensorType> capabilities{
+    SensorType::TEMPERATURE, SensorType::HUMIDITY, SensorType::GAS,
+    SensorType::VIBRATION};
+
+// MEMBERS
+static uint8_t MQTT_PSK_KEY[KEY_SIZE] = "";
 
 static String createNetworkList()
 {
@@ -379,6 +389,9 @@ static void performClientFinish(const char *publicParams, const char *signature,
 
   const auto statusCode = client.POST(payloadEncoded);
   ESP_LOGI(TAG, "Server responded %d", statusCode);
+
+  // TODO persist it to storage
+  memcpy(MQTT_PSK_KEY, generatedSecret.get(), KEY_SIZE);
 }
 
 static void performAttestationProcess()
@@ -499,13 +512,13 @@ esp_mqtt_client_handle_t NetUtils::initMqttConnection()
 {
   ESP_LOGI(TAG, "Initializing mqtt connection...");
 
-  // TODO move to key agreement
-  static const uint8_t  key[3] = {0xAB, 0xC1, 0x23}; // avoid deallocation
-  static const auto    *hint   = "node1";
-  static psk_hint_key_t pskConf{key, 3, hint};
+  static const auto    *hint = "node1";
+  static psk_hint_key_t pskConf{MQTT_PSK_KEY, KEY_SIZE, hint};
+
+  ESP_LOGI(TAG, "Mqtt psk hint: %s", hint);
 
   esp_mqtt_client_config_t mqttCfg{};
-  mqttCfg.uri          = "mqtts://130.162.253.10:8883";
+  mqttCfg.uri          = MQTT_SERVER;
   mqttCfg.client_id    = "node1";
   mqttCfg.psk_hint_key = &pskConf;
 
@@ -519,4 +532,27 @@ esp_mqtt_client_handle_t NetUtils::initMqttConnection()
   ESP_ERROR_CHECK(esp_mqtt_client_start(client));
 
   return client;
+}
+
+static void publishCapability(esp_mqtt_client_handle_t &client,
+                              SensorType                capability)
+{
+  const auto *topic      = "data";
+  const auto *data       = "{\"data\":%d,\"origin\":\"node1\"}";
+  char        buffer[64] = "";
+  sprintf(buffer, data, SensorUtils::querySensor(capability));
+
+  const auto returnCode =
+      esp_mqtt_client_publish(client, topic, data, strlen(data), 0, 0);
+  ESP_LOGI(TAG, "Message on topic %s has mid: %d", topic, returnCode);
+}
+
+void NetUtils::publishAll(esp_mqtt_client_handle_t &client)
+{
+  ESP_LOGI(TAG, "Publishing all data to the broker");
+
+  for (auto capability : capabilities)
+  {
+    publishCapability(client, capability);
+  }
 }

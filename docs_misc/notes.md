@@ -13,6 +13,7 @@
 ## Things to remember
 
 0x04 is Uncompressed point indicator!
+always open port both on firewall and ingress rule
 
 ## TODO
 

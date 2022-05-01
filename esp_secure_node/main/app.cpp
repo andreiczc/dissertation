@@ -31,6 +31,9 @@ void setup()
 
 void loop()
 {
-  ESP_LOGI(TAG, "Still looping");
-  delay(5000);
+  ESP_LOGI(TAG, "Looping");
+
+  NetUtils::publishAll(mqttClient);
+
+  delay(60000);
 }

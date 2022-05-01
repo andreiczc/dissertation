@@ -8,4 +8,5 @@ idf_component_register(
           mqtt 
           json 
           spiffs-utils
+          sensor-utils
           AsyncWebServer)

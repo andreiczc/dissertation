@@ -11,6 +11,8 @@ public:
   static void attestDevice();
 
   static esp_mqtt_client_handle_t initMqttConnection();
+
+  static void publishAll(esp_mqtt_client_handle_t &client);
 };
 
 #endif // _NET_UTILS_H
