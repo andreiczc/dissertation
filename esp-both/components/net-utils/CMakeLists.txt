@@ -3,8 +3,7 @@ idf_component_register(
   INCLUDE_DIRS "."
   REQUIRES 
           mbedtls 
-          arduino 
-          AsyncWebServer 
+          arduino  
           crypto-utils 
           mqtt 
           json 

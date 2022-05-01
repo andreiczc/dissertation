@@ -3,6 +3,7 @@
 
 #include "esp_log.h"
 #include "net_utils.h"
+#include "web3_client.h"
 
 // CONSTANTS
 static constexpr auto *TAG = "MAIN";
@@ -17,15 +18,19 @@ static std::string dataString =
 // MEMBERS
 static esp_mqtt_client_handle_t mqttClient;
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
   ESP_LOGI(TAG, "Starting setup");
 
   NetUtils::startWifi();
   // NetUtils::attestDevice();
-  mqttClient = NetUtils::initMqttConnection();
+  // mqttClient = NetUtils::initMqttConnection();
+  blockchain::callContract(CONTRACT_ADDRESS, dataString);
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
+void loop()
+{
+  ESP_LOGI(TAG, "Still looping");
+  delay(5000);
 }

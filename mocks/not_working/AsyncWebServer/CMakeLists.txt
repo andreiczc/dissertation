@@ -8,4 +8,4 @@ idf_component_register(
     "WebResponses.cpp"
     "WebServer.cpp"
   INCLUDE_DIRS "."
-  REQUIRES arduino AsyncTCP)
+  REQUIRES arduino AsyncTCP mbedtls spiffs)
