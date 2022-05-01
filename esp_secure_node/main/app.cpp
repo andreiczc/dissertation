@@ -33,7 +33,7 @@ void loop()
 {
   ESP_LOGI(TAG, "Looping");
 
-  // NetUtils::publishAll(mqttClient);
+  NetUtils::publishAll(mqttClient);
 
   delay(60000);
 }

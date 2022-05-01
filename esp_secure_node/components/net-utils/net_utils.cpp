@@ -541,7 +541,7 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
   const auto name     = capabilityName.at(capability);
   const auto settings = capabilitiesSettings.at(name);
 
-  ESP_LOGI(TAG, "Publishing %s", name);
+  ESP_LOGI(TAG, "Publishing %s", name.c_str());
 
   if (!settings.enabled)
   {
@@ -557,14 +557,30 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
       esp_mqtt_client_publish(client, topic, data, strlen(data), 0, 0);
   ESP_LOGI(TAG, "Message on topic %s has mid: %d", topic, returnCode);
 
-  if (settings.blockchain)
+  /* if (!settings.blockchain.isEmpty())
   {
-    const auto whiteSpace      = settings.blockchain.indexOf(" ");
-    const auto contractAddress = settings.blockchain.substring(0, whiteSpace);
-    const auto payload         = settings.blockchain.substring(whiteSpace + 1);
+    const auto        whiteSpace = settings.blockchain.indexOf(" ");
+    const std::string contractAddress =
+        settings.blockchain.substring(0, whiteSpace).c_str();
+    std::string payload = settings.blockchain.substring(whiteSpace + 1).c_str();
 
-    blockchain::callContract(contractAddress.c_str(), payload.c_str());
-  }
+    const auto              bufferSize = payload.length() + 32;
+    std::unique_ptr<char[]> buffer(new char[bufferSize]);
+
+    char encodedValue[65] = "";
+    encodedValue[64]      = 0;
+    memset(encodedValue, '0', 64);
+
+    sprintf(buffer.get(), payload.c_str(), encodedValue);
+
+    ESP_LOGI(TAG, "Encoded value: %s", encodedValue);
+    ESP_LOGI(TAG, "Formatter used: %s", payload.c_str());
+    ESP_LOGI(TAG, "Calling contract %s with data %s for %s",
+             contractAddress.c_str(), buffer.get(), name.c_str());
+
+    std::string formattedPayload(buffer.get());
+    blockchain::callContract(contractAddress, formattedPayload);
+  } */
 }
 
 void NetUtils::publishAll(esp_mqtt_client_handle_t &client)
