@@ -10,7 +10,7 @@
 #include "Contract.h"
 #include "Util.h"
 #include "Web3.h"
-#include "cJSON/cJSON.h"
+#include "cJSON.h"
 #include <WiFi.h>
 #include <vector>
 

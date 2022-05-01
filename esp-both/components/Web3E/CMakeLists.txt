@@ -8,4 +8,9 @@ idf_component_register(
         "Util.cpp" 
         "Web3.cpp"
   INCLUDE_DIRS "."
-  REQUIRES arduino)
+  REQUIRES 
+      arduino
+      Trezor
+      TagReader
+      uint256
+      json)
