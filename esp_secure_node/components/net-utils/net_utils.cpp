@@ -1,7 +1,6 @@
 #include "net_utils.h"
 
 #include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
 
 #include "Arduino.h"
 #include "WiFi.h"
@@ -14,9 +13,17 @@
 #include "spiffs_utils.h"
 #include <HTTPClient.h>
 #include <SPIFFS.h>
+#include <map>
 #include <vector>
 
 #define KEY_SIZE 32
+
+struct SensorSetting
+{
+  bool   enabled;
+  String blockchain;
+  String ml;
+};
 
 // TODO add certificate checks in esp and server
 
@@ -32,6 +39,16 @@ static const String CLIENT_FINISHED_ENDPOINT = "clientFinished";
 static const std::vector<SensorType> capabilities{
     SensorType::TEMPERATURE, SensorType::HUMIDITY, SensorType::GAS,
     SensorType::VIBRATION};
+static const std::map<SensorType, String> capabilityName{
+    {SensorType::TEMPERATURE, "temp"},
+    {SensorType::HUMIDITY, "humidity"},
+    {SensorType::GAS, "gas"},
+    {SensorType::VIBRATION, "vibration"}};
+static std::map<SensorType, SensorSetting> capabilitiesSettings{
+    {{SensorType::TEMPERATURE, {true, "", ""}},
+     {SensorType::HUMIDITY, {true, "", ""}},
+     {SensorType::GAS, {true, "", ""}},
+     {SensorType::VIBRATION, {true, "", ""}}}};
 
 // MEMBERS
 static uint8_t MQTT_PSK_KEY[KEY_SIZE] = "";
@@ -555,4 +572,113 @@ void NetUtils::publishAll(esp_mqtt_client_handle_t &client)
   {
     publishCapability(client, capability);
   }
+}
+
+std::unique_ptr<AsyncWebServer> NetUtils::startManagementServer()
+{
+  if (!SPIFFS.begin())
+  {
+    ESP_LOGE(TAG, "Couldn't mount filesystem");
+  }
+
+  std::unique_ptr<AsyncWebServer> server(new AsyncWebServer(80));
+  server->on("/", HTTP_GET,
+             [](AsyncWebServerRequest *request)
+             {
+               ESP_LOGI(TAG, "Received GET request on /");
+               request->send(SPIFFS, "/config_index.html");
+             });
+
+  for (auto capability : capabilities)
+  {
+    const auto   name     = capabilityName.at(capability);
+    const String endpoint = String("/") + name;
+
+    ESP_LOGI(TAG, "Adding endpoints for %s", endpoint.c_str());
+
+    server->on(
+        endpoint.c_str(), HTTP_GET,
+        [](AsyncWebServerRequest *request)
+        {
+          const auto endpoint = request->url();
+          const auto name     = endpoint.substring(1);
+          ESP_LOGI(TAG, "Received GET request on %s", endpoint.c_str());
+
+          SensorType enumValue;
+          for (const auto &pair : capabilityName)
+          {
+            if (name.equals(pair.second))
+            {
+              enumValue = pair.first;
+              break;
+            }
+          }
+
+          const auto currentSettings = capabilitiesSettings.at(enumValue);
+
+          char buffer[64];
+          sprintf(
+              buffer, "{\"enabled\": %s, \"blockchain\":\"%s\", \"ml\":\"%s\"}",
+              currentSettings.enabled ? "true" : "false",
+              currentSettings.blockchain.c_str(), currentSettings.ml.c_str());
+
+          request->send(200, String(), String(buffer));
+        });
+
+    server->on(
+        endpoint.c_str(), HTTP_POST,
+        [](AsyncWebServerRequest *request)
+        {
+          // do nothing
+        },
+        [](AsyncWebServerRequest *request, String filename, size_t index,
+           uint8_t *data, size_t len, bool final)
+        {
+          // do nothing
+        },
+        [](AsyncWebServerRequest *request, uint8_t *data, size_t len,
+           size_t index, size_t total)
+        {
+          const auto endpoint = request->url();
+          const auto name     = endpoint.substring(1);
+
+          ESP_LOGI(TAG, "Received POST request on %s", endpoint.c_str());
+          ESP_LOGI(TAG, "Data: %s", data);
+
+          auto       *root        = cJSON_Parse((char *)data);
+          const auto *enabledItem = cJSON_GetObjectItem(root, "enabled");
+          const auto  enabled     = !cJSON_IsFalse(enabledItem);
+
+          const auto blockchain =
+              cJSON_GetObjectItem(root, "blockchain")->valuestring;
+          const auto ml = cJSON_GetObjectItem(root, "ml")->valuestring;
+
+          SensorType enumValue;
+          for (const auto &pair : capabilityName)
+          {
+            if (name.equals(pair.second))
+            {
+              enumValue = pair.first;
+              break;
+            }
+          }
+
+          ESP_LOGI(
+              TAG,
+              "Altering setting for %s. Enabled: %d; Blockchain: %s, ML: %s",
+              name.c_str(), enabled, blockchain, ml);
+
+          capabilitiesSettings.at(enumValue) =
+              SensorSetting{enabled, blockchain, ml};
+
+          request->send(200);
+        });
+  }
+
+  server->begin();
+
+  ESP_LOGI(TAG, "Management Web Server is up! IP: %s",
+           WiFi.localIP().toString().c_str());
+
+  return std::move(server);
 }

@@ -16,7 +16,8 @@ static std::string dataString =
     "79000000000000000000000000000000000000000000000000";
 
 // MEMBERS
-static esp_mqtt_client_handle_t mqttClient;
+static esp_mqtt_client_handle_t        mqttClient;
+static std::unique_ptr<AsyncWebServer> managementServer(nullptr);
 
 void setup()
 {
@@ -24,16 +25,16 @@ void setup()
   ESP_LOGI(TAG, "Starting setup");
 
   NetUtils::startWifi();
-  NetUtils::attestDevice();
-  mqttClient = NetUtils::initMqttConnection();
-  // blockchain::callContract(CONTRACT_ADDRESS, dataString);
+  managementServer = NetUtils::startManagementServer();
+  /* NetUtils::attestDevice();
+  mqttClient = NetUtils::initMqttConnection(); */
 }
 
 void loop()
 {
   ESP_LOGI(TAG, "Looping");
 
-  NetUtils::publishAll(mqttClient);
+  // NetUtils::publishAll(mqttClient);
 
   delay(60000);
 }
