@@ -9,4 +9,5 @@ idf_component_register(
           json 
           spiffs-utils
           sensor-utils
+          web3-client
           AsyncWebServer)

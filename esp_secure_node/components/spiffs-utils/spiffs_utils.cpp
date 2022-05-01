@@ -1,9 +1,8 @@
 #include "spiffs_utils.h"
 
-#include <cstdio>
-
+#include "SPIFFS.h"
 #include "esp_log.h"
-#include "esp_spiffs.h"
+#include <cstdio>
 
 const char                  *SpiffsUtils::TAG = "SPIFFS_UTILS";
 std::shared_ptr<SpiffsUtils> SpiffsUtils::instance =
@@ -19,39 +18,39 @@ std::shared_ptr<SpiffsUtils> SpiffsUtils::getInstance()
   return instance;
 }
 
-std::string SpiffsUtils::readText(const std::string &path)
+String SpiffsUtils::readText(const String &path)
 {
-  const auto fileDeleter = [](FILE *f) { fclose(f); };
-  std::unique_ptr<FILE, decltype(fileDeleter)> file(fopen(path.c_str(), "r"),
-                                                    fileDeleter);
-
-  if (!file.get())
+  ESP_LOGI(TAG, "Reading from %s", path.c_str());
+  auto file = SPIFFS.open(path, FILE_READ);
+  if (!file)
   {
     ESP_LOGE(TAG, "Couldn't read from %s", path.c_str());
 
     return "";
   }
 
-  fseek(file.get(), 0, SEEK_END);
-  const auto fileSize = ftell(file.get());
-  fseek(file.get(), 0, SEEK_SET);
+  const auto content = file.readString();
+  file.close();
 
-  std::unique_ptr<char[]> buffer(new char[fileSize + 1]);
-  fread(buffer.get(), sizeof(char), fileSize, file.get());
-  buffer[fileSize] = 0;
-
-  return std::string(buffer.get());
+  return content;
 }
 
-SpiffsUtils::SpiffsUtils()
+void SpiffsUtils::writeText(const String &path, const String &content)
 {
-  ESP_LOGI(TAG, "Initializing SPIFF");
+  ESP_LOGI(TAG, "Writing to %s", path.c_str());
+  auto file = SPIFFS.open(path, FILE_WRITE);
+  if (!file)
+  {
+    ESP_LOGE(TAG, "Couldn't write to %s", path.c_str());
+  }
 
-  esp_vfs_spiffs_conf_t config{};
-  config.base_path              = "/spiffs";
-  config.partition_label        = nullptr;
-  config.max_files              = 3;
-  config.format_if_mount_failed = true;
+  const auto wrote = file.write((uint8_t *)content.c_str(), content.length());
+  if (content.length() != wrote)
+  {
+    ESP_LOGE(TAG, "Not all bytes have been written");
+  }
 
-  ESP_ERROR_CHECK(esp_vfs_spiffs_register(&config));
+  file.close();
 }
+
+SpiffsUtils::SpiffsUtils() {}

@@ -11,6 +11,7 @@
 #include "esp_wifi.h"
 #include "sensor_utils.h"
 #include "spiffs_utils.h"
+#include "web3_client.h"
 #include <HTTPClient.h>
 #include <SPIFFS.h>
 #include <map>
@@ -32,6 +33,8 @@ static constexpr auto *TAG         = "NET";
 static constexpr auto *MQTT_SERVER = "mqtts://130.162.253.10:8883";
 static const String    ATTESTATION_SERVER =
     "http://130.162.253.10:8080/attestation/";
+static const String DEVICE_CERT_PATH         = "/device.crt";
+static const String DEVICE_KEY_PATH          = "/device.key";
 static const String CLIENT_HELLO_ENDPOINT    = "clientHello";
 static const String KEY_EXCHANGE_ENDPOINT    = "keyExchange";
 static const String CLIENT_FINISHED_ENDPOINT = "clientFinished";
@@ -44,11 +47,7 @@ static const std::map<SensorType, String> capabilityName{
     {SensorType::HUMIDITY, "humidity"},
     {SensorType::GAS, "gas"},
     {SensorType::VIBRATION, "vibration"}};
-static std::map<SensorType, SensorSetting> capabilitiesSettings{
-    {{SensorType::TEMPERATURE, {true, "", ""}},
-     {SensorType::HUMIDITY, {true, "", ""}},
-     {SensorType::GAS, {true, "", ""}},
-     {SensorType::VIBRATION, {true, "", ""}}}};
+static std::map<String, SensorSetting> capabilitiesSettings{};
 
 // MEMBERS
 static uint8_t MQTT_PSK_KEY[KEY_SIZE] = "";
@@ -202,6 +201,11 @@ static void startWifiAp()
 
 void NetUtils::startWifi()
 {
+  if (!SPIFFS.begin())
+  {
+    ESP_LOGE(TAG, "Couldn't mount filesystem");
+  }
+
   ESP_LOGI(TAG, "Attempting to connect to WiFi");
 
   if (WiFi.begin() == WL_CONNECT_FAILED)
@@ -218,7 +222,7 @@ void NetUtils::startWifi()
   ESP_LOGI(TAG, "Connection successful");
 }
 
-static bool checkExistingKey(const std::string &content)
+static bool checkExistingKey(const String &content)
 {
   /* TODO add signature check
    format:
@@ -226,7 +230,7 @@ static bool checkExistingKey(const std::string &content)
    signature
    */
 
-  if (content.empty())
+  if (content.isEmpty())
   {
     return false;
   }
@@ -241,22 +245,9 @@ static std::unique_ptr<uint8_t[]> performClientHello()
   client.begin(endpoint);
 
   ESP_LOGI(TAG, "Post to %s", endpoint.c_str());
-  const auto statusCode = client.POST(
-      "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNKekNDQWM2Z0F3SUJBZ0lVRWV0TlN4"
-      "cEEvanY0NlhYYnpVbmwySzJwMDYwd0NnWUlLb1pJemowRUF3SXcKYVRFTE1Ba0dBMVVFQmhN"
-      "Q1VrOHhFREFPQmdOVkJBZ01CMUp2YldGdWFXRXhFakFRQmdOVkJBY01DVUoxWTJoaApjbVZ6"
-      "ZERFS01BZ0dBMVVFQ2d3Qkx6RUtNQWdHQTFVRUN3d0JMekVLTUFnR0ExVUVBd3dCTHpFUU1B"
-      "NEdDU3FHClNJYjNEUUVKQVJZQkx6QWVGdzB5TWpBME16QXhPRFV4TURCYUZ3MHlNekEwTWpV"
-      "eE9EVXhNREJhTUdreEN6QUoKQmdOVkJBWVRBbEpQTVJBd0RnWURWUVFJREFkU2IyMWhibWxo"
-      "TVJJd0VBWURWUVFIREFsQ2RXTm9ZWEpsYzNReApDakFJQmdOVkJBb01BUzh4Q2pBSUJnTlZC"
-      "QXNNQVM4eENqQUlCZ05WQkFNTUFTOHhFREFPQmdrcWhraUc5dzBCCkNRRVdBUzh3V2pBVUJn"
-      "Y3Foa2pPUFFJQkJna3JKQU1EQWdnQkFRY0RRZ0FFUzdEclF4TkRNeFVmeDdGL1NkZUQKSDFB"
-      "OW50dEswbHJTRS92RHlOYW9DNFlnekM4MngvVy80cWdYL1NobVUzVnhvKzhobjd3czNxZ0RZ"
-      "Z3d1S2lOeQo0S05UTUZFd0hRWURWUjBPQkJZRUZBVXJZaUs0S3NtMEpBbDlNR3pBZk9uQWM2"
-      "SnRNQjhHQTFVZEl3UVlNQmFBCkZBVXJZaUs0S3NtMEpBbDlNR3pBZk9uQWM2SnRNQThHQTFV"
-      "ZEV3RUIvd1FGTUFNQkFmOHdDZ1lJS29aSXpqMEUKQXdJRFJ3QXdSQUlnTEFwRG5wTHp1by9n"
-      "REpwVXEyM1NvRVVrSndSd0Vnb0xWZGRWMnd1ekdjVUNJQ3hnSzBRWgpEMDZ3UDAvZkVTSzdR"
-      "cU1jT3dvK1hUOXVhVlVhSW9YNWdEblUKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQ==");
+  const auto deviceCertificate =
+      SpiffsUtils::getInstance()->readText(DEVICE_CERT_PATH);
+  const auto statusCode = client.POST(deviceCertificate.c_str());
 
   ESP_LOGI(TAG, "Server responded %d", statusCode);
   size_t length = 0;
@@ -285,21 +276,14 @@ static String performKeyExchange(mbedtls_ecdh_context &ecdhParams)
       crypto::encodeBase64(buffer, KEY_SIZE * 2 + 1, outputLength);
   ESP_LOGI(TAG, "Encoded DH params: %s", encodedParams.c_str());
 
-  uint8_t privateKey[] = {
-      0x30, 0x78, 0x02, 0x01, 0x01, 0x04, 0x20, 0xa0, 0xc4, 0x6b, 0x41, 0x54,
-      0xa0, 0x14, 0x06, 0xe9, 0xff, 0xc3, 0x46, 0x95, 0x89, 0x4c, 0xca, 0x52,
-      0x18, 0xcc, 0xd1, 0xd4, 0x7f, 0x53, 0x55, 0xc6, 0xe7, 0x12, 0x91, 0x0a,
-      0xc0, 0xbd, 0x79, 0xa0, 0x0b, 0x06, 0x09, 0x2b, 0x24, 0x03, 0x03, 0x02,
-      0x08, 0x01, 0x01, 0x07, 0xa1, 0x44, 0x03, 0x42, 0x00, 0x04, 0x4b, 0xb0,
-      0xeb, 0x43, 0x13, 0x43, 0x33, 0x15, 0x1f, 0xc7, 0xb1, 0x7f, 0x49, 0xd7,
-      0x83, 0x1f, 0x50, 0x3d, 0x9e, 0xdb, 0x4a, 0xd2, 0x5a, 0xd2, 0x13, 0xfb,
-      0xc3, 0xc8, 0xd6, 0xa8, 0x0b, 0x86, 0x20, 0xcc, 0x2f, 0x36, 0xc7, 0xf5,
-      0xbf, 0xe2, 0xa8, 0x17, 0xfd, 0x28, 0x66, 0x53, 0x75, 0x71, 0xa3, 0xef,
-      0x21, 0x9f, 0xbc, 0x2c, 0xde, 0xa8, 0x03, 0x62, 0x0c, 0x2e, 0x2a, 0x23,
-      0x72, 0xe0};
+  const auto privateKeyBase64 =
+      SpiffsUtils::getInstance()->readText(DEVICE_KEY_PATH);
+  size_t     keyLength = 0;
+  const auto privateKey =
+      crypto::decodeBase64((uint8_t *)privateKeyBase64.c_str(), keyLength);
   size_t     signatureLength;
-  const auto signature = crypto::signEcdsa(buffer, KEY_SIZE * 2 + 1,
-                                           signatureLength, privateKey, 122);
+  const auto signature = crypto::signEcdsa(
+      buffer, KEY_SIZE * 2 + 1, signatureLength, privateKey.get(), 122);
 
   const auto signatureEncoded =
       crypto::encodeBase64(signature.get(), signatureLength, outputLength);
@@ -554,6 +538,16 @@ esp_mqtt_client_handle_t NetUtils::initMqttConnection()
 static void publishCapability(esp_mqtt_client_handle_t &client,
                               SensorType                capability)
 {
+  const auto name     = capabilityName.at(capability);
+  const auto settings = capabilitiesSettings.at(name);
+
+  ESP_LOGI(TAG, "Publishing %s", name);
+
+  if (!settings.enabled)
+  {
+    return;
+  }
+
   const auto *topic      = "data";
   const auto *data       = "{\"data\":%d,\"origin\":\"node1\"}";
   char        buffer[64] = "";
@@ -562,6 +556,15 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
   const auto returnCode =
       esp_mqtt_client_publish(client, topic, data, strlen(data), 0, 0);
   ESP_LOGI(TAG, "Message on topic %s has mid: %d", topic, returnCode);
+
+  if (settings.blockchain)
+  {
+    const auto whiteSpace      = settings.blockchain.indexOf(" ");
+    const auto contractAddress = settings.blockchain.substring(0, whiteSpace);
+    const auto payload         = settings.blockchain.substring(whiteSpace + 1);
+
+    blockchain::callContract(contractAddress.c_str(), payload.c_str());
+  }
 }
 
 void NetUtils::publishAll(esp_mqtt_client_handle_t &client)
@@ -574,12 +577,66 @@ void NetUtils::publishAll(esp_mqtt_client_handle_t &client)
   }
 }
 
+static void loadSettingsFromFlash()
+{
+  ESP_LOGI(TAG, "Reading settings from flash");
+
+  const auto spiffsUtils = SpiffsUtils::getInstance();
+  const auto settings    = spiffsUtils->readText("/settings.json");
+
+  const auto *root = cJSON_Parse((char *)settings.c_str());
+
+  for (auto capability : capabilities)
+  {
+    const auto name = capabilityName.at(capability);
+
+    const auto *currItem    = cJSON_GetObjectItem(root, name.c_str());
+    const auto *enabledItem = cJSON_GetObjectItem(currItem, "enabled");
+
+    const auto enabledValue = !cJSON_IsFalse(enabledItem);
+    const auto blockchain =
+        cJSON_GetObjectItem(currItem, "blockchain")->valuestring;
+    const auto ml = cJSON_GetObjectItem(currItem, "ml")->valuestring;
+
+    capabilitiesSettings.insert(
+        {name, SensorSetting{enabledValue, blockchain, ml}});
+  }
+}
+
+static void writeSettingsToFlash()
+{
+  ESP_LOGI(TAG, "Writting settings to flash");
+
+  auto *json = cJSON_CreateObject();
+
+  for (const auto capability : capabilities)
+  {
+    const auto name    = capabilityName.at(capability);
+    const auto setting = capabilitiesSettings.at(name);
+
+    auto *item = cJSON_CreateObject();
+
+    auto *enabled    = cJSON_CreateBool(setting.enabled);
+    auto *blockchain = cJSON_CreateString(setting.blockchain.c_str());
+    auto *ml         = cJSON_CreateString(setting.ml.c_str());
+
+    cJSON_AddItemToObject(item, "enabled", enabled);
+    cJSON_AddItemToObject(item, "blockchain", blockchain);
+    cJSON_AddItemToObject(item, "ml", ml);
+
+    cJSON_AddItemToObject(json, name.c_str(), item);
+  }
+
+  const auto string = cJSON_Print(json);
+  cJSON_Delete(json);
+
+  const auto spiffsUtils = SpiffsUtils::getInstance();
+  spiffsUtils->writeText("/settings.json", string);
+}
+
 std::unique_ptr<AsyncWebServer> NetUtils::startManagementServer()
 {
-  if (!SPIFFS.begin())
-  {
-    ESP_LOGE(TAG, "Couldn't mount filesystem");
-  }
+  loadSettingsFromFlash();
 
   std::unique_ptr<AsyncWebServer> server(new AsyncWebServer(80));
   server->on("/", HTTP_GET,
@@ -613,17 +670,7 @@ std::unique_ptr<AsyncWebServer> NetUtils::startManagementServer()
           const auto name     = endpoint.substring(1);
           ESP_LOGI(TAG, "Received GET request on %s", endpoint.c_str());
 
-          SensorType enumValue;
-          for (const auto &pair : capabilityName)
-          {
-            if (name.equals(pair.second))
-            {
-              enumValue = pair.first;
-              break;
-            }
-          }
-
-          const auto currentSettings = capabilitiesSettings.at(enumValue);
+          const auto currentSettings = capabilitiesSettings.at(name);
 
           char buffer[64];
           sprintf(
@@ -662,25 +709,16 @@ std::unique_ptr<AsyncWebServer> NetUtils::startManagementServer()
               cJSON_GetObjectItem(root, "blockchain")->valuestring;
           const auto ml = cJSON_GetObjectItem(root, "ml")->valuestring;
 
-          SensorType enumValue;
-          for (const auto &pair : capabilityName)
-          {
-            if (name.equals(pair.second))
-            {
-              enumValue = pair.first;
-              break;
-            }
-          }
-
           ESP_LOGI(
               TAG,
               "Altering setting for %s. Enabled: %d; Blockchain: %s, ML: %s",
               name.c_str(), enabled, blockchain, ml);
 
-          capabilitiesSettings.at(enumValue) =
+          capabilitiesSettings.at(name) =
               SensorSetting{enabled, blockchain, ml};
 
           request->send(200);
+          writeSettingsToFlash();
         });
   }
 

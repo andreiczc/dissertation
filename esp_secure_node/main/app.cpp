@@ -3,7 +3,6 @@
 
 #include "esp_log.h"
 #include "net_utils.h"
-#include "web3_client.h"
 
 // CONSTANTS
 static constexpr auto *TAG = "MAIN";
@@ -25,9 +24,9 @@ void setup()
   ESP_LOGI(TAG, "Starting setup");
 
   NetUtils::startWifi();
+  NetUtils::attestDevice();
   managementServer = NetUtils::startManagementServer();
-  /* NetUtils::attestDevice();
-  mqttClient = NetUtils::initMqttConnection(); */
+  mqttClient       = NetUtils::initMqttConnection();
 }
 
 void loop()

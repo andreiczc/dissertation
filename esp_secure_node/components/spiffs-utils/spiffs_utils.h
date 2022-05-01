@@ -1,15 +1,17 @@
 #ifndef _SPIFFS_UTILS_H
 #define _SPIFFS_UTILS_H
 
+#include "Arduino.h"
 #include <memory>
-#include <string>
 
 class SpiffsUtils
 {
 public:
   static std::shared_ptr<SpiffsUtils> getInstance();
 
-  std::string readText(const std::string &path);
+  String readText(const String &path);
+
+  void writeText(const String &path, const String &content);
 
 private:
   explicit SpiffsUtils();
