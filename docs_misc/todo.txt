@@ -1,0 +1,7 @@
+config page
+blockchain
+use cose
+improve crypto
+create the 2 services
+
+add checks on frontend
