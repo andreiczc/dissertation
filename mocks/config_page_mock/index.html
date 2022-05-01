@@ -19,9 +19,6 @@
       <div style="margin: 16px">
         <h1 class="card-title">Sensor Management Interface</h1>
 
-        <div>
-          <label>Sensor types</label>
-        </div>
         <nav>
           <div class="nav nav-tabs" id="nav-tab" role="tablist">
             <button
@@ -147,6 +144,14 @@
               type="submit"
               class="btn btn-secondary"
             />
+            <div
+              id="tempSuccess"
+              style="margin: 16px; display: none"
+              class="alert alert-success"
+              role="alert"
+            >
+              Temp sensor settings saved successfully!
+            </div>
           </div>
           <div
             class="tab-pane fade"
@@ -154,14 +159,16 @@
             role="tabpanel"
             aria-labelledby="nav-humidity-tab"
           >
-             <div class="form-check form-switch">
+            <div class="form-check form-switch">
               <input
                 class="form-check-input"
                 type="checkbox"
                 id="humidityEnable"
                 checked
               />
-              <label class="form-check-label" for="humidityEnable">Enabled</label>
+              <label class="form-check-label" for="humidityEnable"
+                >Enabled</label
+              >
             </div>
             <div id="humidityEnabledDiv">
               <div class="form-check form-switch">
@@ -200,25 +207,45 @@
                 </div>
               </form>
               <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="humidityMl" />
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="humidityMl"
+                />
                 <label class="form-check-label" for="humidityMl"
                   >ML integration</label
                 >
               </div>
-              <form id="humidityMlData" style="display: none; margin-left: 16px">
+              <form
+                id="humidityMlData"
+                style="display: none; margin-left: 16px"
+              >
                 <div class="mb-3">
                   <label for="humidityMlModel" class="form-label"
                     >ML model in Base64</label
                   >
-                  <input type="text" class="form-control" id="humidityMlModel" />
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="humidityMlModel"
+                  />
                 </div>
               </form>
-            <input
-              id="tempSubmit"
-              style="margin-top: 32px"
-              type="submit"
-              class="btn btn-secondary"
-            />
+              <input
+                id="humiditySubmit"
+                style="margin-top: 32px"
+                type="submit"
+                class="btn btn-secondary"
+              />
+              <div
+                id="humiditySuccess"
+                style="margin: 16px; display: none"
+                class="alert alert-success"
+                role="alert"
+              >
+                Humidity sensor settings saved successfully!
+              </div>
+            </div>
           </div>
           <div
             class="tab-pane fade"
@@ -226,78 +253,93 @@
             role="tabpanel"
             aria-labelledby="nav-gases-tab"
           >
-            <div
-            class="tab-pane fade show active"
-            id="nav-temp"
-            role="tabpanel"
-            aria-labelledby="nav-temp-tab"
-          >
             <div class="form-check form-switch">
               <input
                 class="form-check-input"
                 type="checkbox"
-                id="tempEnable"
+                id="humidityEnable"
                 checked
               />
-              <label class="form-check-label" for="tempEnable">Enabled</label>
+              <label class="form-check-label" for="humidityEnable"
+                >Enabled</label
+              >
             </div>
-            <div id="tempEnabledDiv">
+            <div id="humidityEnabledDiv">
               <div class="form-check form-switch">
                 <input
                   class="form-check-input"
                   type="checkbox"
-                  id="tempBlockchain"
+                  id="humidityBlockchain"
                 />
-                <label class="form-check-label" for="tempBlockchain"
+                <label class="form-check-label" for="humidityBlockchain"
                   >Blockchain integration</label
                 >
               </div>
               <form
-                id="tempBlockchainData"
+                id="humidityBlockchainData"
                 style="display: none; margin-left: 16px"
               >
                 <div class="mb-3">
-                  <label for="tempBlockchainContract" class="form-label"
+                  <label for="humidityBlockchainContract" class="form-label"
                     >Contract address</label
                   >
                   <input
                     type="text"
                     class="form-control"
-                    id="tempBlockchainContract"
+                    id="humidityBlockchainContract"
                   />
                 </div>
                 <div class="mb-3">
-                  <label for="tempBlockchainParams" class="form-label"
+                  <label for="humidityBlockchainParams" class="form-label"
                     >Contract data</label
                   >
                   <input
                     type="text"
                     class="form-control"
-                    id="tempBlockchainParams"
+                    id="humidityBlockchainParams"
                   />
                 </div>
               </form>
               <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="tempMl" />
-                <label class="form-check-label" for="tempMl"
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="humidityMl"
+                />
+                <label class="form-check-label" for="humidityMl"
                   >ML integration</label
                 >
               </div>
-              <form id="tempMlData" style="display: none; margin-left: 16px">
+              <form
+                id="humidityMlData"
+                style="display: none; margin-left: 16px"
+              >
                 <div class="mb-3">
-                  <label for="tempMlModel" class="form-label"
+                  <label for="humidityMlModel" class="form-label"
                     >ML model in Base64</label
                   >
-                  <input type="text" class="form-control" id="tempMlModel" />
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="humidityMlModel"
+                  />
                 </div>
               </form>
+              <input
+                id="humiditySubmit"
+                style="margin-top: 32px"
+                type="submit"
+                class="btn btn-secondary"
+              />
+              <div
+                id="gasSuccess"
+                style="margin: 16px; display: none"
+                class="alert alert-success"
+                role="alert"
+              >
+                Gas sensor settings saved successfully!
+              </div>
             </div>
-            <input
-              id="tempSubmit"
-              style="margin-top: 32px"
-              type="submit"
-              class="btn btn-secondary"
-            />
           </div>
           <div
             class="tab-pane fade"
@@ -305,112 +347,95 @@
             role="tabpanel"
             aria-labelledby="nav-vibration-tab"
           >
-            <div
-            class="tab-pane fade show active"
-            id="nav-temp"
-            role="tabpanel"
-            aria-labelledby="nav-temp-tab"
-          >
             <div class="form-check form-switch">
               <input
                 class="form-check-input"
                 type="checkbox"
-                id="tempEnable"
+                id="humidityEnable"
                 checked
               />
-              <label class="form-check-label" for="tempEnable">Enabled</label>
+              <label class="form-check-label" for="humidityEnable"
+                >Enabled</label
+              >
             </div>
-            <div id="tempEnabledDiv">
+            <div id="humidityEnabledDiv">
               <div class="form-check form-switch">
                 <input
                   class="form-check-input"
                   type="checkbox"
-                  id="tempBlockchain"
+                  id="humidityBlockchain"
                 />
-                <label class="form-check-label" for="tempBlockchain"
+                <label class="form-check-label" for="humidityBlockchain"
                   >Blockchain integration</label
                 >
               </div>
               <form
-                id="tempBlockchainData"
+                id="humidityBlockchainData"
                 style="display: none; margin-left: 16px"
               >
                 <div class="mb-3">
-                  <label for="tempBlockchainContract" class="form-label"
+                  <label for="humidityBlockchainContract" class="form-label"
                     >Contract address</label
                   >
                   <input
                     type="text"
                     class="form-control"
-                    id="tempBlockchainContract"
+                    id="humidityBlockchainContract"
                   />
                 </div>
                 <div class="mb-3">
-                  <label for="tempBlockchainParams" class="form-label"
+                  <label for="humidityBlockchainParams" class="form-label"
                     >Contract data</label
                   >
                   <input
                     type="text"
                     class="form-control"
-                    id="tempBlockchainParams"
+                    id="humidityBlockchainParams"
                   />
                 </div>
               </form>
               <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="tempMl" />
-                <label class="form-check-label" for="tempMl"
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="humidityMl"
+                />
+                <label class="form-check-label" for="humidityMl"
                   >ML integration</label
                 >
               </div>
-              <form id="tempMlData" style="display: none; margin-left: 16px">
+              <form
+                id="humidityMlData"
+                style="display: none; margin-left: 16px"
+              >
                 <div class="mb-3">
-                  <label for="tempMlModel" class="form-label"
+                  <label for="humidityMlModel" class="form-label"
                     >ML model in Base64</label
                   >
-                  <input type="text" class="form-control" id="tempMlModel" />
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="humidityMlModel"
+                  />
                 </div>
               </form>
+              <input
+                id="humiditySubmit"
+                style="margin-top: 32px"
+                type="submit"
+                class="btn btn-secondary"
+              />
+              <div
+                id="vibrationSuccess"
+                style="margin: 16px; display: none"
+                class="alert alert-success"
+                role="alert"
+              >
+                Vibration sensor settings saved successfully!
+              </div>
             </div>
-            <input
-              id="tempSubmit"
-              style="margin-top: 32px"
-              type="submit"
-              class="btn btn-secondary"
-            />
           </div>
         </div>
-      </div>
-      <div
-        id="tempSuccess"
-        style="margin: 16px; display: none"
-        class="alert alert-success"
-        role="alert"
-      >
-        Temp sensor settings saved successfully!
-      </div>
-      <div
-        id="humiditySuccess"
-        style="margin: 16px; display: none"
-        class="alert alert-success"
-        role="alert"
-      >
-        Humidity sensor settings saved successfully!
-      </div>
-      <div
-        id="gasSuccess"
-        style="margin: 16px; display: none"
-        class="alert alert-success"
-        role="alert"
-      >
-        Gas sensor settings saved successfully!
-      </div>
-      <div
-        id="vibrationSuccess"
-        style="margin: 16px; display: none"
-        class="alert alert-success"
-        role="alert"
-      >
-        Vibration sensor settings saved successfully!
       </div>
     </div>
 
@@ -445,7 +470,7 @@
             : "";
 
           const ml = document.getElementById(`${prefix}Ml`).checked
-            ? document.getElementById(`${prefix}MlData`).value
+            ? document.getElementById(`${prefix}MlModel`).value
             : "";
 
           const payload = {
@@ -454,13 +479,26 @@
             ml: ml,
           };
 
-          console.log(JSON.stringify(payload));
+          const url = `http://localhost:8080/${prefix}`;
+          const data = JSON.stringify(payload);
+          console.log(`Sending POST to ${url}. Payload: ${data}`);
+
+          fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: data,
+          });
 
           setTimeout(() => (confirmationBox.style.display = "none"), 15000);
         });
       }
 
       prepareDiv("temp");
+      prepareDiv("humidity");
+      prepareDiv("gas");
+      prepareDiv("vibration");
     </script>
   </body>
 </html>
