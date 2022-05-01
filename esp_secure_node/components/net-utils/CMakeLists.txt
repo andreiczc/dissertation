@@ -10,4 +10,5 @@ idf_component_register(
           spiffs-utils
           sensor-utils
           web3-client
+          cbor-ipso
           AsyncWebServer)

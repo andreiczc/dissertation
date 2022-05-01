@@ -10,6 +10,7 @@
 #include "esp_tls.h"
 #include "esp_wifi.h"
 #include "sensor_utils.h"
+#include "smart_obj.h"
 #include "spiffs_utils.h"
 #include "web3_client.h"
 #include <HTTPClient.h>
@@ -31,6 +32,8 @@ struct SensorSetting
 // CONSTANTS
 static constexpr auto *TAG         = "NET";
 static constexpr auto *MQTT_SERVER = "mqtts://130.162.253.10:8883";
+static constexpr auto  OBJECT_ID   = 1001;
+static constexpr auto  INSTANCE_ID = 0;
 static const String    ATTESTATION_SERVER =
     "http://130.162.253.10:8080/attestation/";
 static const String DEVICE_CERT_PATH         = "/device.crt";
@@ -39,6 +42,11 @@ static const String CLIENT_HELLO_ENDPOINT    = "clientHello";
 static const String KEY_EXCHANGE_ENDPOINT    = "keyExchange";
 static const String CLIENT_FINISHED_ENDPOINT = "clientFinished";
 
+static const std::map<SensorType, int> resourceMap{
+    {SensorType::TEMPERATURE, 5001},
+    {SensorType::HUMIDITY, 5002},
+    {SensorType::GAS, 5003},
+    {SensorType::VIBRATION, 5004}};
 static const std::vector<SensorType> capabilities{
     SensorType::TEMPERATURE, SensorType::HUMIDITY, SensorType::GAS,
     SensorType::VIBRATION};
@@ -548,13 +556,18 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
     return;
   }
 
-  const auto *topic      = "data";
-  const auto *data       = "{\"data\":%d,\"origin\":\"node1\"}";
-  char        buffer[64] = "";
-  sprintf(buffer, data, SensorUtils::querySensor(capability));
+  const auto        sensorValue = SensorUtils::querySensor(capability);
+  ipso::SmartObject smartObj;
+  smartObj.addValue(ipso::SmartObjectValue(
+      OBJECT_ID, INSTANCE_ID, resourceMap.at(capability), sensorValue));
+  const auto stringValue = smartObj.cbor();
 
-  const auto returnCode =
-      esp_mqtt_client_publish(client, topic, data, strlen(data), 0, 0);
+  char topic[64] = "";
+  sprintf(topic, "%d/%d/%d", OBJECT_ID, INSTANCE_ID,
+          resourceMap.at(capability));
+
+  const auto returnCode = esp_mqtt_client_publish(
+      client, topic, stringValue.c_str(), stringValue.length(), 0, 0);
   ESP_LOGI(TAG, "Message on topic %s has mid: %d", topic, returnCode);
 
   /* if (!settings.blockchain.isEmpty())
