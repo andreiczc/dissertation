@@ -5,3 +5,5 @@ improve crypto
 create the 2 services
 
 add checks on frontend
+
+add get method to reflect current state for each tab?!?!
