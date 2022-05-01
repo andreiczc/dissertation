@@ -4,3 +4,5 @@ idf_component_register(
   REQUIRES 
     net-utils
     web3-client)
+
+spiffs_create_partition_image(storage "../data" FLASH_IN_PROJECT)

@@ -24,9 +24,9 @@ void setup()
   ESP_LOGI(TAG, "Starting setup");
 
   NetUtils::startWifi();
-  // NetUtils::attestDevice();
-  // mqttClient = NetUtils::initMqttConnection();
-  blockchain::callContract(CONTRACT_ADDRESS, dataString);
+  NetUtils::attestDevice();
+  mqttClient = NetUtils::initMqttConnection();
+  // blockchain::callContract(CONTRACT_ADDRESS, dataString);
 }
 
 void loop()
