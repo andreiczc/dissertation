@@ -7,4 +7,5 @@ idf_component_register(
           crypto-utils 
           mqtt 
           json 
-          spiffs-utils)
+          spiffs-utils
+          AsyncWebServer)
