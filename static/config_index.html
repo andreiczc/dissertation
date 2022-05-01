@@ -427,6 +427,55 @@
     </div>
 
     <script>
+      const ip = "%IP%";
+
+      function populate(prefix) {
+        const url = `http://${ip}:80/${prefix}`;
+        console.log(`calling: ${url}`);
+
+        fetch(url)
+          .then((response) => response.json())
+          .then((data) => {
+            console.log(`Response for ${url}: ${JSON.stringify(data)}`);
+
+            document.getElementById(`${prefix}Enable`).checked = data.enabled;
+
+            if (data.blockchain === "") {
+              document.getElementById(`${prefix}Blockchain`).checked = false;
+            } else {
+              const tokens = data.blockchain.split(" ");
+
+              document.getElementById(`${prefix}Blockchain`).checked = true;
+              document.getElementById(`${prefix}BlockchainContract`).value =
+                tokens[0];
+              document.getElementById(`${prefix}BlockchainParams`).value =
+                tokens[1];
+            }
+
+            if (data.ml === "") {
+              document.getElementById(`${prefix}Ml`).checked = false;
+            } else {
+              document.getElementById(`${prefix}Ml`).checked = true;
+              document.getElementById(`${prefix}MlModel`).value = data.ml;
+            }
+
+            document.getElementById(`${prefix}BlockchainData`).style.display =
+              document.getElementById(`${prefix}Blockchain`).checked
+                ? "block"
+                : "none";
+
+            document.getElementById(`${prefix}MlData`).style.display =
+              document.getElementById(`${prefix}Ml`).checked ? "block" : "none";
+          });
+      }
+
+      window.addEventListener("DOMContentLoaded", function () {
+        populate("temp");
+        populate("humidity");
+        populate("gas");
+        populate("vibration");
+      });
+
       function setup(switchId, additionalDataId) {
         const switchElement = document.getElementById(switchId);
         const additionalDataElement = document.getElementById(additionalDataId);
@@ -466,7 +515,7 @@
             ml: ml,
           };
 
-          const url = `http://localhost:8080/${prefix}`;
+          const url = `http://${ip}:80/${prefix}`;
           const data = JSON.stringify(payload);
           console.log(`Sending POST to ${url}. Payload: ${data}`);
 

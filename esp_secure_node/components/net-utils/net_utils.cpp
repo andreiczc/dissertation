@@ -586,7 +586,16 @@ std::unique_ptr<AsyncWebServer> NetUtils::startManagementServer()
              [](AsyncWebServerRequest *request)
              {
                ESP_LOGI(TAG, "Received GET request on /");
-               request->send(SPIFFS, "/config_index.html");
+               request->send(SPIFFS, "/config_index.html", String(), false,
+                             [](const String &var)
+                             {
+                               if (var == "IP")
+                               {
+                                 return WiFi.localIP().toString();
+                               }
+
+                               return String();
+                             });
              });
 
   for (auto capability : capabilities)
@@ -675,6 +684,7 @@ std::unique_ptr<AsyncWebServer> NetUtils::startManagementServer()
         });
   }
 
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
   server->begin();
 
   ESP_LOGI(TAG, "Management Web Server is up! IP: %s",
