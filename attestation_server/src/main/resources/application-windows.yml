@@ -1,0 +1,2 @@
+mqtt:
+  psk_file: D:\\test.key

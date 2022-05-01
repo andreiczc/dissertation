@@ -1,9 +1,13 @@
-config page
-blockchain
-use cose
-improve crypto
-create the 2 services
+1. config page -> done
 
-add checks on frontend
+2.
+http server for config page
+blockchain configuration
 
-add get method to reflect current state for each tab?!?!
+3. use cose
+
+4. improve crypto
+
+5. create the 2 services
+
+6. add get method to reflect current state for each tab?!?!
