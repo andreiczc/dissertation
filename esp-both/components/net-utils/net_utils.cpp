@@ -133,7 +133,7 @@ static AsyncWebServer createWebServer(const String &networkList)
       {
         ESP_LOGI(TAG, "Received POST request on /wifi with body");
         request->send(200);
-        ESP_LOGI(TAG, "Received data from website", data);
+        ESP_LOGI(TAG, "Received data from website %s", data);
 
         const auto delimiter = " ";
         const auto ssid      = strtok((char *)data, delimiter);
@@ -203,6 +203,8 @@ static bool checkExistingKey(const std::string &content)
   {
     return false;
   }
+
+  return false;
 }
 
 static std::unique_ptr<uint8_t[]> performClientHello()

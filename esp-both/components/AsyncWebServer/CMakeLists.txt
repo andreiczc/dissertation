@@ -9,5 +9,3 @@ idf_component_register(
     "WebServer.cpp"
   INCLUDE_DIRS "."
   REQUIRES arduino AsyncTCP)
-
-target_compile_definitions(${COMPONENT_TARGET} PRIVATE "-DESP32")
