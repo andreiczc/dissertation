@@ -4,7 +4,7 @@
 
 3. blockchain configuration
 
-3. use cose
+3. use cose -> done
 
 4. improve crypto by adding certificate checks
 

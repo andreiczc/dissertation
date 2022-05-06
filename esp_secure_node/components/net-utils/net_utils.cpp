@@ -22,9 +22,9 @@
 
 struct SensorSetting
 {
-  bool   enabled;
-  String blockchain;
-  String ml;
+  bool enabled;
+  char blockchain[512];
+  char ml[256];
 };
 
 // TODO add certificate checks in esp and server
@@ -55,7 +55,11 @@ static const std::map<SensorType, String> capabilityName{
     {SensorType::HUMIDITY, "humidity"},
     {SensorType::GAS, "gas"},
     {SensorType::VIBRATION, "vibration"}};
-static std::map<String, SensorSetting> capabilitiesSettings{};
+static std::map<String, SensorSetting> capabilitiesSettings{
+    {"temp", SensorSetting{true, "", ""}},
+    {"humidity", SensorSetting{true, "", ""}},
+    {"gas", SensorSetting{true, "", ""}},
+    {"vibration", SensorSetting{true, "", ""}}};
 
 // MEMBERS
 static uint8_t MQTT_PSK_KEY[KEY_SIZE] = "";
@@ -547,7 +551,7 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
                               SensorType                capability)
 {
   const auto name     = capabilityName.at(capability);
-  const auto settings = capabilitiesSettings.at(name);
+  auto       settings = capabilitiesSettings.at(name);
 
   ESP_LOGI(TAG, "Publishing %s", name.c_str());
 
@@ -570,30 +574,28 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
       client, topic, stringValue.c_str(), stringValue.length(), 0, 0);
   ESP_LOGI(TAG, "Message on topic %s has mid: %d", topic, returnCode);
 
-  /* if (!settings.blockchain.isEmpty())
+  if (strlen(settings.blockchain))
   {
-    const auto        whiteSpace = settings.blockchain.indexOf(" ");
-    const std::string contractAddress =
-        settings.blockchain.substring(0, whiteSpace).c_str();
-    std::string payload = settings.blockchain.substring(whiteSpace + 1).c_str();
+    const auto *contractAddress = strtok(settings.blockchain, " ");
+    const auto *payload         = strtok(nullptr, " ");
 
-    const auto              bufferSize = payload.length() + 32;
+    const auto              bufferSize = strlen(payload) + 32;
     std::unique_ptr<char[]> buffer(new char[bufferSize]);
 
     char encodedValue[65] = "";
     encodedValue[64]      = 0;
     memset(encodedValue, '0', 64);
 
-    sprintf(buffer.get(), payload.c_str(), encodedValue);
+    sprintf(buffer.get(), payload, encodedValue);
 
     ESP_LOGI(TAG, "Encoded value: %s", encodedValue);
-    ESP_LOGI(TAG, "Formatter used: %s", payload.c_str());
-    ESP_LOGI(TAG, "Calling contract %s with data %s for %s",
-             contractAddress.c_str(), buffer.get(), name.c_str());
+    ESP_LOGI(TAG, "Formatter used: %s", payload);
+    ESP_LOGI(TAG, "Calling contract %s with data %s for %s", contractAddress,
+             buffer.get(), name.c_str());
 
     std::string formattedPayload(buffer.get());
     blockchain::callContract(contractAddress, formattedPayload);
-  } */
+  }
 }
 
 void NetUtils::publishAll(esp_mqtt_client_handle_t &client)
@@ -627,8 +629,11 @@ static void loadSettingsFromFlash()
         cJSON_GetObjectItem(currItem, "blockchain")->valuestring;
     const auto ml = cJSON_GetObjectItem(currItem, "ml")->valuestring;
 
-    capabilitiesSettings.insert(
-        {name, SensorSetting{enabledValue, blockchain, ml}});
+    // deep copy
+    auto &setting   = capabilitiesSettings.at(name);
+    setting.enabled = enabledValue;
+    strcpy(setting.blockchain, blockchain);
+    strcpy(setting.ml, ml);
   }
 }
 
@@ -646,8 +651,8 @@ static void writeSettingsToFlash()
     auto *item = cJSON_CreateObject();
 
     auto *enabled    = cJSON_CreateBool(setting.enabled);
-    auto *blockchain = cJSON_CreateString(setting.blockchain.c_str());
-    auto *ml         = cJSON_CreateString(setting.ml.c_str());
+    auto *blockchain = cJSON_CreateString(setting.blockchain);
+    auto *ml         = cJSON_CreateString(setting.ml);
 
     cJSON_AddItemToObject(item, "enabled", enabled);
     cJSON_AddItemToObject(item, "blockchain", blockchain);
@@ -691,24 +696,24 @@ std::unique_ptr<AsyncWebServer> NetUtils::startManagementServer()
 
     ESP_LOGI(TAG, "Adding endpoints for %s", endpoint.c_str());
 
-    server->on(
-        endpoint.c_str(), HTTP_GET,
-        [](AsyncWebServerRequest *request)
-        {
-          const auto endpoint = request->url();
-          const auto name     = endpoint.substring(1);
-          ESP_LOGI(TAG, "Received GET request on %s", endpoint.c_str());
+    server->on(endpoint.c_str(), HTTP_GET,
+               [](AsyncWebServerRequest *request)
+               {
+                 const auto endpoint = request->url();
+                 const auto name     = endpoint.substring(1);
+                 ESP_LOGI(TAG, "Received GET request on %s", endpoint.c_str());
 
-          const auto currentSettings = capabilitiesSettings.at(name);
+                 const auto currentSettings = capabilitiesSettings.at(name);
 
-          char buffer[64];
-          sprintf(
-              buffer, "{\"enabled\": %s, \"blockchain\":\"%s\", \"ml\":\"%s\"}",
-              currentSettings.enabled ? "true" : "false",
-              currentSettings.blockchain.c_str(), currentSettings.ml.c_str());
+                 char buffer[820];
+                 sprintf(
+                     buffer,
+                     "{\"enabled\": %s, \"blockchain\":\"%s\", \"ml\":\"%s\"}",
+                     currentSettings.enabled ? "true" : "false",
+                     currentSettings.blockchain, currentSettings.ml);
 
-          request->send(200, String(), String(buffer));
-        });
+                 request->send(200, String(), String(buffer));
+               });
 
     server->on(
         endpoint.c_str(), HTTP_POST,
@@ -738,13 +743,16 @@ std::unique_ptr<AsyncWebServer> NetUtils::startManagementServer()
               cJSON_GetObjectItem(root, "blockchain")->valuestring;
           const auto ml = cJSON_GetObjectItem(root, "ml")->valuestring;
 
+          // deep copy
+          auto &setting   = capabilitiesSettings.at(name);
+          setting.enabled = enabled;
+          strcpy(setting.blockchain, blockchain);
+          strcpy(setting.ml, ml);
+
           ESP_LOGI(
               TAG,
-              "Altering setting for %s. Enabled: %d; Blockchain: %s, ML: %s",
-              name.c_str(), enabled, blockchain, ml);
-
-          capabilitiesSettings.at(name) =
-              SensorSetting{enabled, blockchain, ml};
+              "Altered setting for %s. Enabled: %d; Blockchain: %s, ML: %s",
+              name.c_str(), setting.enabled, setting.blockchain, setting.ml);
 
           request->send(200);
           writeSettingsToFlash();
