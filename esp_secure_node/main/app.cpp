@@ -23,17 +23,17 @@ void setup()
   Serial.begin(115200);
   ESP_LOGI(TAG, "Starting setup");
 
-  NetUtils::startWifi();
+  /* NetUtils::startWifi();
   NetUtils::attestDevice();
   managementServer = NetUtils::startManagementServer();
-  mqttClient       = NetUtils::initMqttConnection();
+  mqttClient       = NetUtils::initMqttConnection(); */
 }
 
 void loop()
 {
   ESP_LOGI(TAG, "Looping");
 
-  NetUtils::publishAll(mqttClient);
+  // NetUtils::publishAll(mqttClient);
 
   delay(60000);
 }

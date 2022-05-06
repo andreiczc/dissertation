@@ -579,12 +579,16 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
     const auto *contractAddress = strtok(settings.blockchain, " ");
     const auto *payload         = strtok(nullptr, " ");
 
-    const auto              bufferSize = strlen(payload) + 32;
+    const auto              bufferSize = strlen(payload) + 64;
     std::unique_ptr<char[]> buffer(new char[bufferSize]);
 
     char encodedValue[65] = "";
     encodedValue[64]      = 0;
-    memset(encodedValue, '0', 64);
+    memset(encodedValue, '0', 56);
+
+    char valueBuffer[9] = "";
+    sprintf(valueBuffer, "%08x", sensorValue);
+    memcpy(encodedValue + 56, valueBuffer, 8);
 
     sprintf(buffer.get(), payload, encodedValue);
 
