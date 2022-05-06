@@ -4,12 +4,6 @@
 #include "esp_log.h"
 #include "net_utils.h"
 
-#include "tensorflow/lite/micro/all_ops_resolver.h"
-#include "tensorflow/lite/micro/micro_error_reporter.h"
-#include "tensorflow/lite/micro/micro_interpreter.h"
-#include "tensorflow/lite/micro/system_setup.h"
-#include "tensorflow/lite/schema/schema_generated.h"
-
 // CONSTANTS
 static constexpr auto *TAG = "MAIN";
 static constexpr auto *CONTRACT_ADDRESS =
@@ -29,17 +23,17 @@ void setup()
   Serial.begin(115200);
   ESP_LOGI(TAG, "Starting setup");
 
-  /* NetUtils::startWifi();
+  NetUtils::startWifi();
   NetUtils::attestDevice();
   managementServer = NetUtils::startManagementServer();
-  mqttClient       = NetUtils::initMqttConnection(); */
+  mqttClient       = NetUtils::initMqttConnection();
 }
 
 void loop()
 {
   ESP_LOGI(TAG, "Looping");
 
-  // NetUtils::publishAll(mqttClient);
+  NetUtils::publishAll(mqttClient);
 
   delay(60000);
 }
