@@ -8,4 +8,4 @@ unsigned char *model_tflite;
 unsigned int model_tflite_len;
 } // namespace ml::model
 
-#endif _MODEL_DATA_H
+#endif // _MODEL_DATA_H
