@@ -2,21 +2,21 @@
   "temp": {
     "enabled": true,
     "blockchain": "",
-    "ml": ""
+    "ml": false
   },
   "humidity": {
     "enabled": true,
     "blockchain": "",
-    "ml": ""
+    "ml": false
   },
   "gas": {
     "enabled": true,
     "blockchain": "",
-    "ml": ""
+    "ml": false
   },
   "vibration": {
     "enabled": true,
     "blockchain": "",
-    "ml": ""
+    "ml": false
   }
 }

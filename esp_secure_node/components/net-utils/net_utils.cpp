@@ -10,6 +10,7 @@
 #include "esp_tls.h"
 #include "esp_wifi.h"
 #include "ml_utils.h"
+#include "model_data.h"
 #include "sensor_utils.h"
 #include "smart_obj.h"
 #include "spiffs_utils.h"
@@ -25,7 +26,7 @@ struct SensorSetting
 {
   bool enabled;
   char blockchain[512];
-  char ml[256];
+  bool ml;
 };
 
 // TODO add certificate checks in esp and server
@@ -61,7 +62,7 @@ static std::map<String, SensorSetting> capabilitiesSettings{
     {"humidity", SensorSetting{true, "", ""}},
     {"gas", SensorSetting{true, "", ""}},
     {"vibration", SensorSetting{true, "", ""}}};
-static std::map<String, MlPredictor *> predictors{};
+static MlPredictor predictor(ml::model::model_tflite);
 
 // MEMBERS
 static uint8_t MQTT_PSK_KEY[KEY_SIZE] = "";
@@ -633,17 +634,15 @@ static void loadSettingsFromFlash()
     const auto enabledValue = !cJSON_IsFalse(enabledItem);
     const auto blockchain =
         cJSON_GetObjectItem(currItem, "blockchain")->valuestring;
-    const auto ml = cJSON_GetObjectItem(currItem, "ml")->valuestring;
+
+    const auto *mlItem = cJSON_GetObjectItem(currItem, "ml");
+    const auto  ml     = !cJSON_IsFalse(mlItem);
 
     // deep copy
     auto &setting   = capabilitiesSettings.at(name);
     setting.enabled = enabledValue;
     strcpy(setting.blockchain, blockchain);
-    strcpy(setting.ml, ml);
-
-    size_t     modelLength = 0;
-    const auto decoded     = crypto::decodeBase64((uint8_t *)ml, modelLength);
-    predictors.insert({name, new MlPredictor(decoded.get())});
+    setting.ml = ml;
   }
 }
 
@@ -662,7 +661,7 @@ static void writeSettingsToFlash()
 
     auto *enabled    = cJSON_CreateBool(setting.enabled);
     auto *blockchain = cJSON_CreateString(setting.blockchain);
-    auto *ml         = cJSON_CreateString(setting.ml);
+    auto *ml         = cJSON_CreateBool(setting.ml);
 
     cJSON_AddItemToObject(item, "enabled", enabled);
     cJSON_AddItemToObject(item, "blockchain", blockchain);
@@ -676,28 +675,6 @@ static void writeSettingsToFlash()
 
   const auto spiffsUtils = SpiffsUtils::getInstance();
   spiffsUtils->writeText("/settings.json", string);
-}
-
-static void managePredictors(const char *name, const char *ml)
-{
-  ESP_LOGI(TAG, "Managing predictor for %s", name);
-
-  auto *predictor = predictors.at(name);
-  if (predictor)
-  {
-    ESP_LOGI(TAG, "Deleting predictor for %s", name);
-    delete predictor;
-  }
-
-  if (strlen(ml) == 0)
-  {
-    return;
-  }
-
-  size_t     length       = 0;
-  const auto decodedModel = crypto::decodeBase64((uint8_t *)ml, length);
-  predictors.insert({name, new MlPredictor(decodedModel.get())});
-  ESP_LOGI(TAG, "Created new predictor for %s", name);
 }
 
 std::unique_ptr<AsyncWebServer> NetUtils::startManagementServer()
@@ -738,11 +715,11 @@ std::unique_ptr<AsyncWebServer> NetUtils::startManagementServer()
                  const auto currentSettings = capabilitiesSettings.at(name);
 
                  char buffer[820];
-                 sprintf(
-                     buffer,
-                     "{\"enabled\": %s, \"blockchain\":\"%s\", \"ml\":\"%s\"}",
-                     currentSettings.enabled ? "true" : "false",
-                     currentSettings.blockchain, currentSettings.ml);
+                 sprintf(buffer,
+                         "{\"enabled\": %s, \"blockchain\":\"%s\", \"ml\":%s}",
+                         currentSettings.enabled ? "true" : "false",
+                         currentSettings.blockchain,
+                         currentSettings.ml ? "true" : "false");
 
                  request->send(200, String(), String(buffer));
                });
@@ -773,22 +750,22 @@ std::unique_ptr<AsyncWebServer> NetUtils::startManagementServer()
 
           const auto blockchain =
               cJSON_GetObjectItem(root, "blockchain")->valuestring;
-          const auto ml = cJSON_GetObjectItem(root, "ml")->valuestring;
+          const auto *mlItem = cJSON_GetObjectItem(root, "ml");
+          const auto  ml     = !cJSON_IsFalse(mlItem);
 
           // deep copy
           auto &setting   = capabilitiesSettings.at(name);
           setting.enabled = enabled;
           strcpy(setting.blockchain, blockchain);
-          strcpy(setting.ml, ml);
+          setting.ml = ml;
 
           ESP_LOGI(
               TAG,
-              "Altered setting for %s. Enabled: %d; Blockchain: %s, ML: %s",
+              "Altered setting for %s. Enabled: %d; Blockchain: %s, ML: %d",
               name.c_str(), setting.enabled, setting.blockchain, setting.ml);
 
           request->send(200);
           writeSettingsToFlash();
-          managePredictors(name.c_str(), ml);
         });
   }
 
