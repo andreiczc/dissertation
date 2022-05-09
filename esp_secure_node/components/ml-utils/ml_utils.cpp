@@ -2,7 +2,7 @@
 
 #include "esp_log.h"
 
-#define TENSOR_ARENA_SIZE 2048
+#define TENSOR_ARENA_SIZE 102400
 
 static tflite::MicroErrorReporter errorReporter;
 static tflite::AllOpsResolver     resolver;

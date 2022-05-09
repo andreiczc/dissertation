@@ -5,6 +5,7 @@ idf_component_register(
           mbedtls 
           arduino  
           crypto-utils 
+          ml-utils
           mqtt 
           json 
           spiffs-utils

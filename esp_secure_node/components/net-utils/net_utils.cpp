@@ -9,6 +9,7 @@
 #include "esp_log.h"
 #include "esp_tls.h"
 #include "esp_wifi.h"
+#include "ml_utils.h"
 #include "sensor_utils.h"
 #include "smart_obj.h"
 #include "spiffs_utils.h"
@@ -60,6 +61,7 @@ static std::map<String, SensorSetting> capabilitiesSettings{
     {"humidity", SensorSetting{true, "", ""}},
     {"gas", SensorSetting{true, "", ""}},
     {"vibration", SensorSetting{true, "", ""}}};
+static std::map<String, MlPredictor *> predictors{};
 
 // MEMBERS
 static uint8_t MQTT_PSK_KEY[KEY_SIZE] = "";
@@ -638,6 +640,10 @@ static void loadSettingsFromFlash()
     setting.enabled = enabledValue;
     strcpy(setting.blockchain, blockchain);
     strcpy(setting.ml, ml);
+
+    size_t     modelLength = 0;
+    const auto decoded     = crypto::decodeBase64((uint8_t *)ml, modelLength);
+    predictors.insert({name, new MlPredictor(decoded.get())});
   }
 }
 
@@ -670,6 +676,28 @@ static void writeSettingsToFlash()
 
   const auto spiffsUtils = SpiffsUtils::getInstance();
   spiffsUtils->writeText("/settings.json", string);
+}
+
+static void managePredictors(const char *name, const char *ml)
+{
+  ESP_LOGI(TAG, "Managing predictor for %s", name);
+
+  auto *predictor = predictors.at(name);
+  if (predictor)
+  {
+    ESP_LOGI(TAG, "Deleting predictor for %s", name);
+    delete predictor;
+  }
+
+  if (strlen(ml) == 0)
+  {
+    return;
+  }
+
+  size_t     length       = 0;
+  const auto decodedModel = crypto::decodeBase64((uint8_t *)ml, length);
+  predictors.insert({name, new MlPredictor(decodedModel.get())});
+  ESP_LOGI(TAG, "Created new predictor for %s", name);
 }
 
 std::unique_ptr<AsyncWebServer> NetUtils::startManagementServer()
@@ -760,6 +788,7 @@ std::unique_ptr<AsyncWebServer> NetUtils::startManagementServer()
 
           request->send(200);
           writeSettingsToFlash();
+          managePredictors(name.c_str(), ml);
         });
   }
 

@@ -42,11 +42,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#if defined(ARDUINO) && !defined(ARDUINOSTL_M_H)
-  #include <utility.h>
-#else
-  #include <utility>
-#endif
+#include <utility>
 
 #include <string>
 #include <type_traits>
