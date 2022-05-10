@@ -129,14 +129,6 @@
                   >ML integration</label
                 >
               </div>
-              <form id="tempMlData" style="display: none; margin-left: 16px">
-                <div class="mb-3">
-                  <label for="tempMlModel" class="form-label"
-                    >ML model in Base64</label
-                  >
-                  <input type="text" class="form-control" id="tempMlModel" />
-                </div>
-              </form>
             </div>
             <input
               id="tempSubmit"
@@ -216,21 +208,6 @@
                   >ML integration</label
                 >
               </div>
-              <form
-                id="humidityMlData"
-                style="display: none; margin-left: 16px"
-              >
-                <div class="mb-3">
-                  <label for="humidityMlModel" class="form-label"
-                    >ML model in Base64</label
-                  >
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="humidityMlModel"
-                  />
-                </div>
-              </form>
               <input
                 id="humiditySubmit"
                 style="margin-top: 32px"
@@ -304,14 +281,6 @@
                   >ML integration</label
                 >
               </div>
-              <form id="gasMlData" style="display: none; margin-left: 16px">
-                <div class="mb-3">
-                  <label for="gasMlModel" class="form-label"
-                    >ML model in Base64</label
-                  >
-                  <input type="text" class="form-control" id="gasMlModel" />
-                </div>
-              </form>
               <input
                 id="gasSubmit"
                 style="margin-top: 32px"
@@ -391,21 +360,6 @@
                   >ML integration</label
                 >
               </div>
-              <form
-                id="vibrationMlData"
-                style="display: none; margin-left: 16px"
-              >
-                <div class="mb-3">
-                  <label for="vibrationMlModel" class="form-label"
-                    >ML model in Base64</label
-                  >
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="vibrationMlModel"
-                  />
-                </div>
-              </form>
               <input
                 id="vibrationSubmit"
                 style="margin-top: 32px"
@@ -452,20 +406,12 @@
                 tokens[1];
             }
 
-            if (data.ml === "") {
-              document.getElementById(`${prefix}Ml`).checked = false;
-            } else {
-              document.getElementById(`${prefix}Ml`).checked = true;
-              document.getElementById(`${prefix}MlModel`).value = data.ml;
-            }
+            document.getElementById(`${prefix}Ml`).checked = data.ml;
 
             document.getElementById(`${prefix}BlockchainData`).style.display =
               document.getElementById(`${prefix}Blockchain`).checked
                 ? "block"
                 : "none";
-
-            document.getElementById(`${prefix}MlData`).style.display =
-              document.getElementById(`${prefix}Ml`).checked ? "block" : "none";
           });
       }
 
@@ -490,7 +436,6 @@
 
       function prepareDiv(prefix) {
         setup(`${prefix}Blockchain`, `${prefix}BlockchainData`);
-        setup(`${prefix}Ml`, `${prefix}MlData`);
         setup(`${prefix}Enable`, `${prefix}EnabledDiv`);
 
         const button = document.getElementById(`${prefix}Submit`);
@@ -505,15 +450,15 @@
               } ${document.getElementById(`${prefix}BlockchainParams`).value}`
             : "";
 
-          const ml = document.getElementById(`${prefix}Ml`).checked
-            ? document.getElementById(`${prefix}MlModel`).value
-            : "";
+          const ml = document.getElementById(`${prefix}Ml`).checked;
 
           const payload = {
             enabled: document.getElementById(`${prefix}Enable`).checked,
             blockchain: blockchain,
             ml: ml,
           };
+
+          console.log(`Sent payload ${JSON.stringify(payload)}`);
 
           const url = `http://${ip}:80/${prefix}`;
           const data = JSON.stringify(payload);

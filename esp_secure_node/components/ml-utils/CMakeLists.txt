@@ -1,5 +1,5 @@
 idf_component_register(
-  SRCS "ml_utils.cpp" "model_data.cpp"
+  SRCS "ml_utils.cpp"
   INCLUDE_DIRS "."
   REQUIRES 
           tflite-lib)

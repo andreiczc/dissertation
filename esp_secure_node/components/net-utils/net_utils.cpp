@@ -40,6 +40,7 @@ static constexpr auto  OBJECT_ID   = 1001;
 static constexpr auto  INSTANCE_ID = 0;
 
 static std::unique_ptr<uint8_t[]> MQTT_PSK_KEY(nullptr);
+static MlPredictor                predictor(ml::model::modelBytes);
 
 static const std::map<SensorType, int> resourceMap{
     {SensorType::TEMPERATURE, 5001},
@@ -59,7 +60,6 @@ static std::map<String, SensorSetting> capabilitiesSettings{
     {"humidity", SensorSetting{true, "", ""}},
     {"gas", SensorSetting{true, "", ""}},
     {"vibration", SensorSetting{true, "", ""}}};
-static MlPredictor predictor(ml::model::model_tflite);
 
 void NetUtils::startWifi()
 {
@@ -250,6 +250,11 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
   const auto returnCode = esp_mqtt_client_publish(
       client, topic, stringValue.c_str(), stringValue.length(), 0, 0);
   ESP_LOGI(TAG, "Message on topic %s has mid: %d", topic, returnCode);
+
+  if (settings.ml)
+  {
+    ESP_LOGI(TAG, "Performing prediction for %s", name.c_str());
+  }
 
   if (strlen(settings.blockchain))
   {

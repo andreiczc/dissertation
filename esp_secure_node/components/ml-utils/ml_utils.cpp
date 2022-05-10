@@ -2,7 +2,7 @@
 
 #include "esp_log.h"
 
-#define TENSOR_ARENA_SIZE 102400
+#define TENSOR_ARENA_SIZE 4096
 
 static tflite::MicroErrorReporter errorReporter;
 static tflite::AllOpsResolver     resolver;
@@ -13,6 +13,8 @@ MlPredictor::MlPredictor(const uint8_t *modelBytes)
     : interpreter(tflite::GetModel(modelBytes), resolver, tensorArena,
                   TENSOR_ARENA_SIZE, &errorReporter)
 {
+  ESP_LOGI(TAG, "Creating a new predictor");
+
   if (interpreter.AllocateTensors() != kTfLiteOk)
   {
     ESP_LOGE(TAG, "Tensors could not be allocated");
