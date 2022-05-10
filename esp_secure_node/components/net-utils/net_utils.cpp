@@ -279,8 +279,7 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
     inputBuffer[NO_LAST_VALUES - 1] = sensorValue;
 
     auto      *outputBuffer = predictor.predict();
-    const auto delta =
-        outputBuffer[NO_LAST_VALUES - 1] - lastValues[NO_LAST_VALUES - 1];
+    const auto delta        = outputBuffer[NO_LAST_VALUES - 1] - sensorValue;
 
     ESP_LOGI(TAG, "Predicted value is %f. Actual value was %f. Delta is %f",
              outputBuffer[NO_LAST_VALUES - 1], lastValues[NO_LAST_VALUES - 1],
