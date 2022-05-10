@@ -2,16 +2,26 @@
 
 2. http server for config page -> done
 
-3. blockchain configuration
+3. blockchain configuration -> done
 
-3. use cose -> done
+4. use cose -> done
 
-4. improve crypto by adding certificate checks
+5. add get method to reflect current state for each tab -> done
 
-5. create the 2 services
+6. add setting persistency to flash -> done
 
-6. add get method to reflect current state for each tab -> done
+7. move certificates to flash -> done
 
-7. add setting persistency to flash -> done
+8. improve crypto by adding certificate checks
 
-8. move certificates to flash -> done
+9. improve the attestation process by persisting the key to a file in the specified format
+
+10. create the 2 services
+
+11. use real sensors
+
+OPTIONAL:
+
+1. check memory allocation
+
+2. code cleanup

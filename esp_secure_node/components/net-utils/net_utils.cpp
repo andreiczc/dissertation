@@ -254,6 +254,17 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
   if (settings.ml)
   {
     ESP_LOGI(TAG, "Performing prediction for %s", name.c_str());
+    auto *inputBuffer = predictor.getInputBuffer();
+    inputBuffer[0]    = 21.1f;
+    inputBuffer[1]    = 21.2f;
+    inputBuffer[2]    = 21.1f;
+    inputBuffer[3]    = 21.2f;
+
+    auto *outputBuffer = predictor.predict();
+    ESP_LOGI(TAG, "Predicted value is %f. Actual value was %f", outputBuffer[3],
+             21.2f);
+
+    ESP_LOGI(TAG, "Prediction for %s ran successfully", name.c_str());
   }
 
   if (strlen(settings.blockchain))
