@@ -22,7 +22,8 @@
 #include <map>
 #include <vector>
 
-#define KEY_SIZE 32
+#define KEY_SIZE       32
+#define NO_LAST_VALUES 4
 
 struct SensorSetting
 {
@@ -60,6 +61,11 @@ static std::map<String, SensorSetting> capabilitiesSettings{
     {"humidity", SensorSetting{true, "", ""}},
     {"gas", SensorSetting{true, "", ""}},
     {"vibration", SensorSetting{true, "", ""}}};
+static std::map<String, float *> lastSensorValues{
+    {"temp", new float[NO_LAST_VALUES]{0, 0, 0, 0}},
+    {"humidity", new float[NO_LAST_VALUES]{0, 0, 0, 0}},
+    {"gas", new float[NO_LAST_VALUES]{0, 0, 0, 0}},
+    {"vibration", new float[NO_LAST_VALUES]{0, 0, 0, 0}}};
 
 void NetUtils::startWifi()
 {
@@ -224,20 +230,76 @@ esp_mqtt_client_handle_t NetUtils::initMqttConnection()
   return client;
 }
 
+static void persistLastValues(String name, float value)
+{
+  ESP_LOGI(TAG, "Persisting last values for %s", name.c_str());
+
+  auto *buffer = lastSensorValues.at(name);
+  if (!buffer[0])
+  {
+    for (auto i = 0; i < NO_LAST_VALUES; ++i)
+    {
+      buffer[i] = value;
+    }
+  }
+  else
+  {
+    memcpy(buffer, buffer + 1, (NO_LAST_VALUES - 1) * sizeof(float));
+    buffer[NO_LAST_VALUES - 1] = value;
+  }
+
+  ESP_LOGI(TAG, "Last values for %s are: %f %f %f %f", name.c_str(), buffer[0],
+           buffer[1], buffer[2], buffer[3]);
+}
+
 static void publishCapability(esp_mqtt_client_handle_t &client,
                               SensorType                capability)
 {
   const auto name     = capabilityName.at(capability);
   auto       settings = capabilitiesSettings.at(name);
 
-  ESP_LOGI(TAG, "Publishing %s", name.c_str());
+  ESP_LOGI(TAG, "Trying to publish capability for %s", name.c_str());
 
   if (!settings.enabled)
   {
+    ESP_LOGI(TAG, "%s is disabled. Skipping...", name.c_str());
+
     return;
   }
 
-  const auto        sensorValue = SensorUtils::querySensor(capability);
+  const auto sensorValue = SensorUtils::querySensor(capability);
+
+  if (settings.ml)
+  {
+    ESP_LOGI(TAG, "Performing prediction for %s", name.c_str());
+    auto *inputBuffer = predictor.getInputBuffer();
+    auto *lastValues  = lastSensorValues.at(name);
+
+    memcpy(inputBuffer, lastValues + 1, (NO_LAST_VALUES - 1) * sizeof(float));
+    inputBuffer[NO_LAST_VALUES - 1] = sensorValue;
+
+    auto      *outputBuffer = predictor.predict();
+    const auto delta =
+        outputBuffer[NO_LAST_VALUES - 1] - lastValues[NO_LAST_VALUES - 1];
+
+    ESP_LOGI(TAG, "Predicted value is %f. Actual value was %f. Delta is %f",
+             outputBuffer[NO_LAST_VALUES - 1], lastValues[NO_LAST_VALUES - 1],
+             delta);
+    ESP_LOGI(TAG, "Prediction for %s ran successfully", name.c_str());
+
+    if (delta > 1 || delta < -1)
+    {
+      ESP_LOGI(TAG, "Data for %s was anomalous... skipping this value",
+               name.c_str());
+
+      return;
+    }
+
+    persistLastValues(name, sensorValue);
+  }
+
+  ESP_LOGI(TAG, "Data for %s is good. Publishing...", name.c_str());
+
   ipso::SmartObject smartObj;
   smartObj.addValue(ipso::SmartObjectValue(
       OBJECT_ID, INSTANCE_ID, resourceMap.at(capability), sensorValue));
@@ -250,22 +312,6 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
   const auto returnCode = esp_mqtt_client_publish(
       client, topic, stringValue.c_str(), stringValue.length(), 0, 0);
   ESP_LOGI(TAG, "Message on topic %s has mid: %d", topic, returnCode);
-
-  if (settings.ml)
-  {
-    ESP_LOGI(TAG, "Performing prediction for %s", name.c_str());
-    auto *inputBuffer = predictor.getInputBuffer();
-    inputBuffer[0]    = 21.1f;
-    inputBuffer[1]    = 21.2f;
-    inputBuffer[2]    = 21.1f;
-    inputBuffer[3]    = 21.2f;
-
-    auto *outputBuffer = predictor.predict();
-    ESP_LOGI(TAG, "Predicted value is %f. Actual value was %f", outputBuffer[3],
-             21.2f);
-
-    ESP_LOGI(TAG, "Prediction for %s ran successfully", name.c_str());
-  }
 
   if (strlen(settings.blockchain))
   {
@@ -280,7 +326,7 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
     memset(encodedValue, '0', 56);
 
     char valueBuffer[9] = "";
-    sprintf(valueBuffer, "%08x", sensorValue);
+    sprintf(valueBuffer, "%08x", (int)sensorValue);
     memcpy(encodedValue + 56, valueBuffer, 8);
 
     sprintf(buffer.get(), payload, encodedValue);

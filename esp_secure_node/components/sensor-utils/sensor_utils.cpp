@@ -2,9 +2,9 @@
 
 #include "esp_random.h"
 
-int getTemperature()
+float getTemperature()
 {
-  return 25 + esp_random() % 25;
+  return 25.0 + (esp_random() % 120 * 0.01);
 }
 
 int getHumidity()
@@ -22,7 +22,7 @@ int getGases()
   return esp_random() % 1;
 }
 
-int SensorUtils::querySensor(SensorType type)
+float SensorUtils::querySensor(SensorType type)
 {
   switch (type)
   {

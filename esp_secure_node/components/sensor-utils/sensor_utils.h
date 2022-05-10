@@ -4,11 +4,10 @@
 #include "sensor_types.h"
 #include <Arduino.h>
 
-
 class SensorUtils
 {
 public:
-  static int querySensor(SensorType type);
+  static float querySensor(SensorType type);
 };
 
 #endif // _SENSOR_UTILS_H
