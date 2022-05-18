@@ -378,6 +378,8 @@ static void loadSettingsFromFlash()
     setting.enabled = enabledValue;
     strcpy(setting.blockchain, blockchain);
     setting.ml = ml;
+
+    persistLastValues(name, SensorUtils::querySensor(capability));
   }
 }
 

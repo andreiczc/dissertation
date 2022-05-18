@@ -1,4 +1,4 @@
-package ro.sec.attestation.web;
+package ro.sec.attestation.web.error;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

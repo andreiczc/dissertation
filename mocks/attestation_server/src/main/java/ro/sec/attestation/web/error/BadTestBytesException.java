@@ -1,4 +1,4 @@
-package ro.sec.attestation.service.exception;
+package ro.sec.attestation.web.error;
 
 public class BadTestBytesException extends Exception {
 }
