@@ -1,0 +1,20 @@
+Unseal Key 1: yQ0fh5uFCm6a+G32a8PP2YAW/1b0CZcHUZ77YYa80Gb/
+Unseal Key 2: M3nLHgc0lGg6Hwe1xOQjqlNYG0S/oe4xdBf9UkYBj3jG
+Unseal Key 3: M9D6dp5IhrFnJqgPRshShmgZY/UqhCtAxnigF5bCs0cq
+Unseal Key 4: 3sPhmLYOYlK/C4w8jRWT6y3taoRgh81ei0GkH7bMvB3Z
+Unseal Key 5: Xvze25GTPEGlGYer+O6eSohv56aJPCpMj58Fc0UA0EH9
+
+Initial Root Token: hvs.FOGApS3xGoAmfnuioVWRNJdm
+
+Vault initialized with 5 key shares and a key threshold of 3. Please securely
+distribute the key shares printed above. When the Vault is re-sealed,
+restarted, or stopped, you must supply at least 3 of these keys to unseal it
+before it can start servicing requests.
+
+Vault does not store the generated root key. Without at least 3 keys to
+reconstruct the root key, Vault will remain permanently sealed!
+
+It is possible to generate new unseal keys, provided you have a quorum of
+existing unseal keys shares. See "vault operator rekey" for more information.
+
+vault secrets enable -path=secret/ kv
