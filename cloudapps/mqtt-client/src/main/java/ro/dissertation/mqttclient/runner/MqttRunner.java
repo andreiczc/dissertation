@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import ro.dissertation.mqttclient.model.IpsoObject;
+import ro.dissertation.mqttclient.service.RecordService;
 
 @Component
 public class MqttRunner implements CommandLineRunner {
@@ -17,10 +18,12 @@ public class MqttRunner implements CommandLineRunner {
     private final Logger log = LoggerFactory.getLogger(MqttRunner.class);
     private final IMqttClient mqttClient;
     private final ObjectMapper objectMapper;
+    private final RecordService recordService;
 
-    public MqttRunner(IMqttClient mqttClient, ObjectMapper objectMapper) {
+    public MqttRunner(IMqttClient mqttClient, ObjectMapper objectMapper, RecordService recordService) {
         this.mqttClient = mqttClient;
         this.objectMapper = objectMapper;
+        this.recordService = recordService;
     }
 
     @Override

@@ -1,6 +1,6 @@
 spring:
   application:
-    name: mqtt-client
+    name: mqttclient
   cloud:
     config:
       import-check:
@@ -9,3 +9,13 @@ spring:
 mqtt:
   broker:
     uri: ssl://130.162.253.10:8884
+
+auth0:
+  issuer: https://dissertationuaa.eu.auth0.com/
+  client-id: GtkkdbPE9BFlTPiI5wRNFTSQ3z3DhYqT
+  audience: secureiot
+  grant-type: client_credentials
+
+vault:
+  uri: https://130.162.253.10:8200/
+  token: "hvs.CAESIG0wu8RKZEhfSwlodF5Y7tBpi7RZ3AjsmUtI_Gm9okG_Gh4KHGh2cy5UNEllUDJNTGc1b0RXbGpBSkJBZDNndjM"
