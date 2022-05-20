@@ -38,8 +38,8 @@ struct SensorSetting
 static constexpr auto *TAG         = "NET";
 static constexpr auto *MQTT_SERVER = "mqtts://130.162.253.10:8883";
 static constexpr auto  OBJECT_ID   = 1001;
-static constexpr auto  INSTANCE_ID = 0;
 
+static auto                       instanceId = 0;
 static std::unique_ptr<uint8_t[]> MQTT_PSK_KEY(nullptr);
 static MlPredictor                predictor(ml::model::modelBytes);
 
@@ -106,7 +106,7 @@ static void performAttestationProcess()
   const auto *test      = cJSON_GetObjectItem(root, "test")->valuestring;
 
   MQTT_PSK_KEY = attestation::performClientFinish(
-      publicParams, signature, test, serverPoint.get(), ecdhParams);
+      publicParams, signature, test, serverPoint.get(), ecdhParams, instanceId);
 }
 
 static bool checkAttestationStatus()
@@ -301,13 +301,12 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
 
   ipso::SmartObject smartObj;
   smartObj.addValue(ipso::SmartObjectValue(
-      OBJECT_ID, INSTANCE_ID, resourceMap.at(capability), sensorValue));
+      OBJECT_ID, instanceId, resourceMap.at(capability), sensorValue));
   size_t     payloadLength = 0;
   const auto stringValue   = smartObj.cbor(payloadLength);
 
   char topic[64] = "";
-  sprintf(topic, "%d/%d/%d", OBJECT_ID, INSTANCE_ID,
-          resourceMap.at(capability));
+  sprintf(topic, "%d/%d/%d", OBJECT_ID, instanceId, resourceMap.at(capability));
 
   const auto returnCode = esp_mqtt_client_publish(
       client, topic, (char *)stringValue.get(), payloadLength, 0, 0);

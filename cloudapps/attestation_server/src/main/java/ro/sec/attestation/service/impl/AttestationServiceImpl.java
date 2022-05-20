@@ -38,9 +38,10 @@ public class AttestationServiceImpl implements AttestationService {
     private final PrivateKey privateKey;
     private final Map<String, Certificate> certificateMap;
     private final Map<String, byte[]> testBytesMap;
+    private final String bearerToken;
 
     @Autowired
-    public AttestationServiceImpl(SecureStore pskStore) throws Exception {
+    public AttestationServiceImpl(SecureStore pskStore, String bearerToken) throws Exception {
         try (var ownCertificateInputStream = Application.class.getClassLoader().getResourceAsStream("server.crt");
              var privateKeyInputStream = Application.class.getClassLoader().getResourceAsStream("server.key")) {
             this.certificate = CertificateFactory
@@ -54,6 +55,7 @@ public class AttestationServiceImpl implements AttestationService {
         this.testBytesMap = new HashMap<>();
         this.secretStore = new HashMap<>();
         this.pskStore = pskStore;
+        this.bearerToken = bearerToken;
     }
 
     @Override
@@ -68,9 +70,9 @@ public class AttestationServiceImpl implements AttestationService {
                 certificate
         );
 
-        var x = ((ECPublicKey)this.certificate.getPublicKey()).getW().getAffineX().toByteArray();
+        var x = ((ECPublicKey) this.certificate.getPublicKey()).getW().getAffineX().toByteArray();
         x = Arrays.copyOfRange(x, 1, x.length);
-        var y = ((ECPublicKey)this.certificate.getPublicKey()).getW().getAffineY().toByteArray();
+        var y = ((ECPublicKey) this.certificate.getPublicKey()).getW().getAffineY().toByteArray();
 
         var result = Arrays.copyOf(x, x.length + y.length);
         System.arraycopy(y, 0, result, x.length, y.length);
@@ -102,7 +104,7 @@ public class AttestationServiceImpl implements AttestationService {
         log.info("Signature from {} verifies", clientAddress);
 
         var ownKeyPair = CryptoUtils.generateEcKeyPair();
-        var thirdPartyPublicKey = CryptoUtils.decodePublicPoint(publicParams, ((BCECPublicKey)ownKeyPair.getPublic()).getParams());
+        var thirdPartyPublicKey = CryptoUtils.decodePublicPoint(publicParams, ((BCECPublicKey) ownKeyPair.getPublic()).getParams());
         var publicKeyPoint = CryptoUtils.packagePublicEcPoint((BCECPublicKey) ownKeyPair.getPublic());
         var signatureOfPublicKey = CryptoUtils
                 .signEcdsa(publicKeyPoint, privateKey);
@@ -113,7 +115,7 @@ public class AttestationServiceImpl implements AttestationService {
         var base64Encoder = Base64.getEncoder();
 
         var serverPayload = new ServerPayload(
-                base64Encoder.encodeToString(publicKeyPoint) ,
+                base64Encoder.encodeToString(publicKeyPoint),
                 base64Encoder.encodeToString(signatureOfPublicKey),
                 base64Encoder.encodeToString(testBytes));
 
@@ -126,18 +128,19 @@ public class AttestationServiceImpl implements AttestationService {
     }
 
     @Override
-    public void clientFinish(String encodedPayload) throws Exception  {
+    public void clientFinish(String encodedPayload) throws Exception {
         var payload = Base64.getDecoder().decode(encodedPayload);
         var clientAddress = getRequestIp();
 
         var iv = Arrays.copyOfRange(payload, 0, 16);
-        var ciphertext = Arrays.copyOfRange(payload, 16, payload.length);
+        var ciphertext = Arrays.copyOfRange(payload, 16, 32);
         var sessionKey = secretStore.remove(clientAddress);
+        var objectIdBytes = Arrays.copyOfRange(payload, 32, payload.length);
 
         var secretBytes = testBytesMap.remove(clientAddress);
         var decrypted = CryptoUtils.decryptAes(ciphertext, iv, sessionKey);
 
-        if(!Arrays.equals(secretBytes, decrypted)) {
+        if (!Arrays.equals(secretBytes, decrypted)) {
             log.info("Payload from {} wasn't correct", clientAddress);
 
             throw new BadTestBytesException();
@@ -145,10 +148,12 @@ public class AttestationServiceImpl implements AttestationService {
 
         pskStore.store(clientAddress, sessionKey);
         log.info("Session with {} has been established successfully", clientAddress);
+
+        var objectId = new String(objectIdBytes);
+        log.info("The object ID is {}", objectId);
     }
 
-    private String getRequestIp()
-    {
+    private String getRequestIp() {
         return ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes())
                 .getRequest()
                 .getRemoteAddr();

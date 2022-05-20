@@ -1,4 +1,4 @@
-package ro.dissertation.mqttclient.config.security;
+package ro.sec.attestation.config.security;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -7,10 +7,10 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestTemplate;
-import ro.dissertation.mqttclient.model.AuthRequest;
-import ro.dissertation.mqttclient.model.AuthResponse;
-import ro.dissertation.mqttclient.model.VaultProperties;
-import ro.dissertation.mqttclient.model.VaultResponse;
+import ro.sec.attestation.model.AuthRequest;
+import ro.sec.attestation.model.AuthResponse;
+import ro.sec.attestation.model.VaultProperties;
+import ro.sec.attestation.model.VaultResponse;
 
 @Configuration
 public class Authorizer {
