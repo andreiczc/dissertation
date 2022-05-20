@@ -1,5 +1,6 @@
 package ro.dissertation.mqttclient.runner;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
@@ -8,15 +9,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import ro.dissertation.mqttclient.model.IpsoObject;
 
 @Component
 public class MqttRunner implements CommandLineRunner {
 
     private final Logger log = LoggerFactory.getLogger(MqttRunner.class);
     private final IMqttClient mqttClient;
+    private final ObjectMapper objectMapper;
 
-    public MqttRunner(IMqttClient mqttClient) {
+    public MqttRunner(IMqttClient mqttClient, ObjectMapper objectMapper) {
         this.mqttClient = mqttClient;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -34,9 +38,11 @@ public class MqttRunner implements CommandLineRunner {
                 var hex = bytesToHex(payloadBytes);
 
                 log.info("Message arrived on topic {}", s);
-                log.info("Payload: {}", hex);
-                /*log.info("Received at timestamp: {}", payload.getTimestamp());
-                log.info("Received value: {}", payload.getValues().get(0).getValue());*/
+                log.debug("Payload: {}", hex);
+
+                var payload = objectMapper.readValue(payloadBytes, IpsoObject.class);
+                log.info("Received at timestamp: {}", payload.getTimestamp());
+                log.info("Received value: {}", payload.getValues().get(0).getValue());
             }
 
             @Override
