@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: mqtt-client
+  cloud:
+    config:
+      import-check:
+        enabled: false
+
+mqtt:
+  broker:
+    uri: ssl://130.162.253.10:8884

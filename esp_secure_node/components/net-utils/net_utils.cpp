@@ -302,14 +302,15 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
   ipso::SmartObject smartObj;
   smartObj.addValue(ipso::SmartObjectValue(
       OBJECT_ID, INSTANCE_ID, resourceMap.at(capability), sensorValue));
-  const auto stringValue = smartObj.cbor();
+  size_t     payloadLength = 0;
+  const auto stringValue   = smartObj.cbor(payloadLength);
 
   char topic[64] = "";
   sprintf(topic, "%d/%d/%d", OBJECT_ID, INSTANCE_ID,
           resourceMap.at(capability));
 
   const auto returnCode = esp_mqtt_client_publish(
-      client, topic, stringValue.c_str(), stringValue.length(), 0, 0);
+      client, topic, (char *)stringValue.get(), payloadLength, 0, 0);
   ESP_LOGI(TAG, "Message on topic %s has mid: %d", topic, returnCode);
 
   if (strlen(settings.blockchain))

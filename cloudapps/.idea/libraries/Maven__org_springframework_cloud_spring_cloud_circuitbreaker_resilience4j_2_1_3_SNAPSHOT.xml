@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.springframework.cloud:spring-cloud-circuitbreaker-resilience4j:2.1.3-SNAPSHOT">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/springframework/cloud/spring-cloud-circuitbreaker-resilience4j/2.1.3-SNAPSHOT/spring-cloud-circuitbreaker-resilience4j-2.1.3-20220519.201219-45.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/org/springframework/cloud/spring-cloud-circuitbreaker-resilience4j/2.1.3-SNAPSHOT/spring-cloud-circuitbreaker-resilience4j-2.1.3-20220519.201219-45-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/springframework/cloud/spring-cloud-circuitbreaker-resilience4j/2.1.3-SNAPSHOT/spring-cloud-circuitbreaker-resilience4j-2.1.3-20220519.201219-45-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
