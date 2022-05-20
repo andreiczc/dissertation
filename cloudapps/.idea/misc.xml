@@ -8,6 +8,7 @@
         <option value="$PROJECT_DIR$/gateway/pom.xml" />
         <option value="$PROJECT_DIR$/attestation_server/pom.xml" />
         <option value="$PROJECT_DIR$/mqtt-client/pom.xml" />
+        <option value="$PROJECT_DIR$/dbapp/pom.xml" />
       </list>
     </option>
   </component>

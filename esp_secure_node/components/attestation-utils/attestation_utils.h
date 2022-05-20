@@ -15,7 +15,7 @@ String performKeyExchange(mbedtls_ecdh_context &ecdhParams);
 std::unique_ptr<uint8_t[]>
 performClientFinish(const char *publicParams, const char *signature,
                     const char *test, const uint8_t *serverPoint,
-                    mbedtls_ecdh_context &ecdhParams);
+                    mbedtls_ecdh_context &ecdhParams, int &instanceId);
 } // namespace attestation
 
 #endif // _ATTESTATION_UTILS_H

@@ -10,6 +10,7 @@
         <module name="registry" />
         <module name="config-server" />
         <module name="attestation_server" />
+        <module name="dbapp" />
         <module name="mqtt-client" />
         <module name="gateway" />
       </profile>
@@ -17,6 +18,7 @@
     <bytecodeTargetLevel>
       <module name="attestation_server" target="11" />
       <module name="config-server" target="17" />
+      <module name="dbapp" target="17" />
       <module name="gateway" target="17" />
       <module name="mqtt-client" target="17" />
       <module name="registry" target="17" />
@@ -26,6 +28,7 @@
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="attestation_server" options="-parameters" />
       <module name="config-server" options="-parameters" />
+      <module name="dbapp" options="-parameters" />
       <module name="gateway" options="-parameters" />
       <module name="mqtt-client" options="-parameters" />
       <module name="registry" options="-parameters" />

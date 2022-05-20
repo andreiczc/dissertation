@@ -5,6 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/attestation_server/attestation_server.iml" filepath="$PROJECT_DIR$/attestation_server/attestation_server.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/cloudapps.iml" filepath="$PROJECT_DIR$/.idea/cloudapps.iml" />
       <module fileurl="file://$PROJECT_DIR$/config-server/config-server.iml" filepath="$PROJECT_DIR$/config-server/config-server.iml" />
+      <module fileurl="file://$PROJECT_DIR$/dbapp/dbapp.iml" filepath="$PROJECT_DIR$/dbapp/dbapp.iml" />
       <module fileurl="file://$PROJECT_DIR$/gateway/gateway.iml" filepath="$PROJECT_DIR$/gateway/gateway.iml" />
       <module fileurl="file://$PROJECT_DIR$/mqtt-client/mqtt-client.iml" filepath="$PROJECT_DIR$/mqtt-client/mqtt-client.iml" />
       <module fileurl="file://$PROJECT_DIR$/registry/registry.iml" filepath="$PROJECT_DIR$/registry/registry.iml" />

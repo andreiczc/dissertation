@@ -1,13 +1,13 @@
 <component name="libraryTable">
   <library name="Maven: org.springframework.cloud:spring-cloud-sleuth-api:3.1.2-SNAPSHOT">
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/org/springframework/cloud/spring-cloud-sleuth-api/3.1.2-SNAPSHOT/spring-cloud-sleuth-api-3.1.2-20220520.032349-193.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/springframework/cloud/spring-cloud-sleuth-api/3.1.2-SNAPSHOT/spring-cloud-sleuth-api-3.1.2-20220520.161346-195.jar!/" />
     </CLASSES>
     <JAVADOC>
-      <root url="jar://$MAVEN_REPOSITORY$/org/springframework/cloud/spring-cloud-sleuth-api/3.1.2-SNAPSHOT/spring-cloud-sleuth-api-3.1.2-20220520.032349-193-javadoc.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/springframework/cloud/spring-cloud-sleuth-api/3.1.2-SNAPSHOT/spring-cloud-sleuth-api-3.1.2-20220520.161346-195-javadoc.jar!/" />
     </JAVADOC>
     <SOURCES>
-      <root url="jar://$MAVEN_REPOSITORY$/org/springframework/cloud/spring-cloud-sleuth-api/3.1.2-SNAPSHOT/spring-cloud-sleuth-api-3.1.2-20220520.032349-193-sources.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/springframework/cloud/spring-cloud-sleuth-api/3.1.2-SNAPSHOT/spring-cloud-sleuth-api-3.1.2-20220520.161346-195-sources.jar!/" />
     </SOURCES>
   </library>
 </component>

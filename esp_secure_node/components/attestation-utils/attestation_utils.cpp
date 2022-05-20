@@ -98,11 +98,10 @@ String performKeyExchange(mbedtls_ecdh_context &ecdhParams)
   return client.getString();
 }
 
-std::unique_ptr<uint8_t[]> performClientFinish(const char    *publicParams,
-                                               const char    *signature,
-                                               const char    *test,
-                                               const uint8_t *serverPoint,
-                                               mbedtls_ecdh_context &ecdhParams)
+std::unique_ptr<uint8_t[]>
+performClientFinish(const char *publicParams, const char *signature,
+                    const char *test, const uint8_t *serverPoint,
+                    mbedtls_ecdh_context &ecdhParams, int &instanceId)
 {
   size_t     paramsLength = 0;
   const auto decodedPublicParams =
@@ -159,7 +158,7 @@ std::unique_ptr<uint8_t[]> performClientFinish(const char    *publicParams,
 
   ESP_LOGI(TAG, "IV: %s", ivBase64.c_str());
 
-  uint8_t payload[KEY_SIZE] = "";
+  uint8_t payload[KEY_SIZE + 4] = "";
   memcpy(payload, iv.get(),
          KEY_SIZE / 2); // before encryption since the IV is mutated!
 
@@ -173,10 +172,14 @@ std::unique_ptr<uint8_t[]> performClientFinish(const char    *publicParams,
           testBytes.get(), generatedSecret.get(), iv.get(), cipherTextSize);
 
   memcpy(payload + KEY_SIZE / 2, cipherText.get(), KEY_SIZE / 2);
+  payload[KEY_SIZE + 0] = '1';
+  payload[KEY_SIZE + 1] = '0';
+  payload[KEY_SIZE + 2] = '0';
+  payload[KEY_SIZE + 3] = '1';
 
   size_t     outputLength = 0;
   const auto payloadEncoded =
-      crypto::encodeBase64(payload, KEY_SIZE, outputLength);
+      crypto::encodeBase64(payload, KEY_SIZE + 4, outputLength);
 
   HTTPClient client;
   const auto endpoint = ATTESTATION_SERVER + CLIENT_FINISHED_ENDPOINT;
@@ -187,6 +190,9 @@ std::unique_ptr<uint8_t[]> performClientFinish(const char    *publicParams,
 
   const auto statusCode = client.POST(payloadEncoded);
   ESP_LOGI(TAG, "Server responded %d", statusCode);
+
+  instanceId = client.getString().toInt();
+  ESP_LOGI(TAG, "Instance id is %d", instanceId);
 
   return std::move(generatedSecret);
 }

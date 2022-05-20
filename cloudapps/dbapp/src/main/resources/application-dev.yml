@@ -1,0 +1,44 @@
+server:
+  port: 8081
+
+auth0:
+  audience: secure_iot
+
+spring:
+  application:
+    name: dbapp
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://dissertationuaa.eu.auth0.com/
+  datasource:
+    url: jdbc:mysql://localhost:3306/secureiot
+  jpa:
+    show_sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      javax:
+        persistence:
+          schema-generation:
+            scripts:
+              action: create
+              create-target: create.sql
+              create-source: metadata
+  cloud:
+    config:
+      import-check:
+        enabled: false
+
+eureka:
+  client:
+    registerWithEureka: true
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka
+    healthcheck:
+      enabled: true
+
+vault:
+  uri: https://130.162.253.10:8200/
+  token: "hvs.CAESIOSeW-oz_9dv2YpZ_hefCILO5JQtfGSU45oo6D7KRHpMGh4KHGh2cy5SaGhpVkRzYnFWc3Npa2U0M3JOUVB4Umg"
