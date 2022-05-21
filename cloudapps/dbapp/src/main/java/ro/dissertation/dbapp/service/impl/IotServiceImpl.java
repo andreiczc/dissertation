@@ -78,7 +78,6 @@ public class IotServiceImpl implements IotService {
         object.setObjectId(objectId);
 
         var resources = resourceService.getByObject(object);
-        var response = new ArrayList<IotResourceWithValuesDto>();
 
         return resources
                 .stream()
@@ -104,7 +103,6 @@ public class IotServiceImpl implements IotService {
     @Override
     public Iterable<IotObjectWithInstancesDto> getObjects(Pageable page) {
         var allObjects = objectService.getAll(page);
-        var response = new ArrayList<IotObjectWithInstancesDto>();
 
         return StreamSupport
                 .stream(allObjects.spliterator(), false)
@@ -139,13 +137,17 @@ public class IotServiceImpl implements IotService {
     }
 
     @Override
-    public List<IotRecord> getRecords(int objectId, int resourceId, Pageable page) {
+    public List<IotRecordDto> getRecords(int objectId, int resourceId, Pageable page) {
         var optional = resourceService.getById(resourceId);
         var resource = optional.orElseThrow(NoSuchElementException::new);
         if (resource.getObject().getObjectId() != objectId) {
             throw new RuntimeException();
         }
 
-        return recordService.getByResource(resource, page);
+        return recordService
+                .getByResource(resource, page)
+                .stream()
+                .map(IotRecordDto::new)
+                .toList();
     }
 }

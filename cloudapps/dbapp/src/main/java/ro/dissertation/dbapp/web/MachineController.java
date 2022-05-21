@@ -3,16 +3,15 @@ package ro.dissertation.dbapp.web;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ro.dissertation.dbapp.model.IotRecord;
 import ro.dissertation.dbapp.model.Machine;
 import ro.dissertation.dbapp.service.api.IotService;
-import ro.dissertation.dbapp.web.dto.*;
+import ro.dissertation.dbapp.web.dto.MachineRequestDto;
+import ro.dissertation.dbapp.web.dto.MachineResponseDto;
 
 import javax.validation.Valid;
-import java.util.List;
 
 @RestController
-@RequestMapping("/machine")
+@RequestMapping("/")
 public class MachineController {
 
     private final IotService service;

@@ -3,10 +3,7 @@ package ro.dissertation.dbapp.service.api;
 import org.springframework.data.domain.Pageable;
 import ro.dissertation.dbapp.model.IotRecord;
 import ro.dissertation.dbapp.model.Machine;
-import ro.dissertation.dbapp.web.dto.IotObjectWithInstancesDto;
-import ro.dissertation.dbapp.web.dto.IotResourceWithValuesDto;
-import ro.dissertation.dbapp.web.dto.MachineRequestDto;
-import ro.dissertation.dbapp.web.dto.MachineResponseDto;
+import ro.dissertation.dbapp.web.dto.*;
 
 import java.util.List;
 
@@ -22,5 +19,5 @@ public interface IotService {
 
     IotRecord saveRecord(IotRecord record);
 
-    List<IotRecord> getRecords(int objectId, int resourceId, Pageable page);
+    List<IotRecordDto> getRecords(int objectId, int resourceId, Pageable page);
 }
