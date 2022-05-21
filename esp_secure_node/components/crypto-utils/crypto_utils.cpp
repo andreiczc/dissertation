@@ -12,24 +12,28 @@
 #include <cstring>
 #include <functional>
 
-#define KEY_SIZE 32
+#define KEY_SIZE   32
 #define BLOCK_SIZE 16
-#define SHA_384 1
+#define SHA_384    1
 
-namespace crypto {
+namespace crypto
+{
 static auto *TAG = "CRYPTO";
 
-std::unique_ptr<uint8_t> generateRandomSequence(size_t length) {
+std::unique_ptr<uint8_t> generateRandomSequence(size_t length)
+{
   std::unique_ptr<uint8_t> result(new uint8_t[length]);
 
-  for (auto i = 0; i < length; ++i) {
+  for (auto i = 0; i < length; ++i)
+  {
     result.get()[i] = (uint8_t)random(255);
   }
 
   return std::move(result);
 }
 
-String encodeBase64(uint8_t *input, size_t inputLength, size_t &outputLength) {
+String encodeBase64(uint8_t *input, size_t inputLength, size_t &outputLength)
+{
   std::unique_ptr<uint8_t[]> returnValue(new uint8_t[3 * inputLength]);
 
   mbedtls_base64_encode(returnValue.get(), 3 * inputLength, &outputLength,
@@ -40,7 +44,8 @@ String encodeBase64(uint8_t *input, size_t inputLength, size_t &outputLength) {
   return String((char *)returnValue.get());
 }
 
-std::unique_ptr<uint8_t[]> decodeBase64(uint8_t *input, size_t &outputLength) {
+std::unique_ptr<uint8_t[]> decodeBase64(uint8_t *input, size_t &outputLength)
+{
   const auto inputLength = strlen((char *)input);
 
   std::unique_ptr<uint8_t[]> returnValue(new uint8_t[inputLength]);
@@ -54,29 +59,34 @@ std::unique_ptr<uint8_t[]> decodeBase64(uint8_t *input, size_t &outputLength) {
 }
 
 static std::unique_ptr<uint8_t[]> padPkcs5(uint8_t *input, size_t inputLength,
-                                           size_t outputLength) {
+                                           size_t outputLength)
+{
   auto padBytes = outputLength - inputLength;
 
   std::unique_ptr<uint8_t[]> output(new uint8_t[outputLength]);
   memcpy(output.get(), input, inputLength);
-  for (auto i = inputLength; i < outputLength; ++i) {
+  for (auto i = inputLength; i < outputLength; ++i)
+  {
     output.get()[i] = padBytes;
   }
 
   return std::move(output);
 }
 
-static std::unique_ptr<uint8_t[]> depadPkcs5(uint8_t *input,
-                                             size_t inputLength) {
+static std::unique_ptr<uint8_t[]> depadPkcs5(uint8_t *input, size_t inputLength)
+{
   std::unique_ptr<uint8_t[]> result(new uint8_t[inputLength]);
 
   const auto padBytes = input[inputLength - 1];
 
   memcpy(result.get(), input, inputLength);
 
-  if (padBytes < BLOCK_SIZE) {
-    for (auto i = inputLength - 1; i >= inputLength - padBytes; --i) {
-      if (result.get()[i] != padBytes) {
+  if (padBytes < BLOCK_SIZE)
+  {
+    for (auto i = inputLength - 1; i >= inputLength - padBytes; --i)
+    {
+      if (result.get()[i] != padBytes)
+      {
         break;
       }
 
@@ -88,9 +98,8 @@ static std::unique_ptr<uint8_t[]> depadPkcs5(uint8_t *input,
 }
 
 std::unique_ptr<uint8_t[]> encryptAes(uint8_t *input, uint8_t *key, uint8_t *iv,
-                                      uint16_t &outputSize) {
-  // TODO verify key length
-
+                                      uint16_t &outputSize)
+{
   const auto inputLength = strlen((char *)input);
   ESP_LOGI(TAG, "Plaintext size: %d", inputLength);
 
@@ -109,7 +118,7 @@ std::unique_ptr<uint8_t[]> encryptAes(uint8_t *input, uint8_t *key, uint8_t *iv,
   ESP_LOGI(TAG, "Encrypt return value: %d", returnValue);
   ESP_LOG_BUFFER_HEX(TAG, output.get(), outputSize);
 
-  size_t base64Length = 0;
+  size_t     base64Length = 0;
   const auto cipherTextBase64 =
       crypto::encodeBase64(output.get(), outputSize, base64Length);
   ESP_LOGI(TAG, "Ciphertext: %s", cipherTextBase64.c_str());
@@ -118,7 +127,8 @@ std::unique_ptr<uint8_t[]> encryptAes(uint8_t *input, uint8_t *key, uint8_t *iv,
 }
 
 std::unique_ptr<uint8_t[]> decryptAes(uint8_t *input, uint16_t inputLength,
-                                      uint8_t *key, uint8_t *iv) {
+                                      uint8_t *key, uint8_t *iv)
+{
   ESP_LOGI(TAG, "Size of ciphertext: %d", inputLength);
   ESP_LOG_BUFFER_HEX(TAG, key, KEY_SIZE);
   ESP_LOG_BUFFER_HEX(TAG, iv, BLOCK_SIZE);
@@ -144,13 +154,14 @@ std::unique_ptr<uint8_t[]> decryptAes(uint8_t *input, uint16_t inputLength,
   return std::move(depadded);
 }
 
-mbedtls_ecdh_context generateEcdhParams() {
+mbedtls_ecdh_context generateEcdhParams()
+{
   ESP_LOGI(TAG, "Generating ECDH params");
 
-  mbedtls_ecdh_context context;
+  mbedtls_ecdh_context     context;
   mbedtls_ctr_drbg_context ctrDrbg;
-  mbedtls_entropy_context entropy;
-  const auto *custom = "l33t";
+  mbedtls_entropy_context  entropy;
+  const auto              *custom = "l33t";
 
   mbedtls_ecdh_init(&context);
   mbedtls_ctr_drbg_init(&ctrDrbg);
@@ -175,13 +186,14 @@ mbedtls_ecdh_context generateEcdhParams() {
 }
 
 std::unique_ptr<uint8_t[]>
-generateSharedSecret(mbedtls_ecdh_context &context,
-                     const mbedtls_ecp_point &peerPublicParam) {
+generateSharedSecret(mbedtls_ecdh_context    &context,
+                     const mbedtls_ecp_point &peerPublicParam)
+{
   ESP_LOGI(TAG, "Computing shared secret");
 
   mbedtls_ctr_drbg_context ctrDrbg;
-  mbedtls_entropy_context entropy;
-  const auto *custom = "l33t";
+  mbedtls_entropy_context  entropy;
+  const auto              *custom = "l33t";
 
   mbedtls_ctr_drbg_init(&ctrDrbg);
   mbedtls_entropy_init(&entropy);
@@ -218,8 +230,8 @@ generateSharedSecret(mbedtls_ecdh_context &context,
   return std::move(buffer);
 }
 
-std::unique_ptr<uint8_t[]> computeSha384(uint8_t *message,
-                                         size_t messageLength) {
+std::unique_ptr<uint8_t[]> computeSha384(uint8_t *message, size_t messageLength)
+{
   std::unique_ptr<uint8_t[]> result(new uint8_t[64]);
 
   ESP_LOGI(TAG, "Computing SHA384");
@@ -233,16 +245,17 @@ std::unique_ptr<uint8_t[]> computeSha384(uint8_t *message,
 }
 
 std::unique_ptr<uint8_t[]> signEcdsa(uint8_t *message, size_t messageLength,
-                                     size_t &signatureLength,
+                                     size_t        &signatureLength,
                                      const uint8_t *privateKey,
-                                     size_t privateKeyLength) {
+                                     size_t         privateKeyLength)
+{
   ESP_LOGI(TAG, "Signing ECDSA");
 
-  mbedtls_ecdsa_context context;
-  mbedtls_entropy_context entropy;
+  mbedtls_ecdsa_context    context;
+  mbedtls_entropy_context  entropy;
   mbedtls_ctr_drbg_context ctrDrbg;
-  mbedtls_pk_context pkContext;
-  const auto *custom = "sec";
+  mbedtls_pk_context       pkContext;
+  const auto              *custom = "sec";
 
   mbedtls_ecdsa_init(&context);
   mbedtls_entropy_init(&entropy);
@@ -280,8 +293,9 @@ std::unique_ptr<uint8_t[]> signEcdsa(uint8_t *message, size_t messageLength,
 }
 
 bool verifyEcdsa(uint8_t *message, size_t messageLength, uint8_t *signature,
-                 size_t signatureLength,
-                 const mbedtls_ecp_point &peerPublicParam) {
+                 size_t                   signatureLength,
+                 const mbedtls_ecp_point &peerPublicParam)
+{
   ESP_LOGI(TAG, "Verifying ECDSA signature");
 
   mbedtls_ecdsa_context context;
