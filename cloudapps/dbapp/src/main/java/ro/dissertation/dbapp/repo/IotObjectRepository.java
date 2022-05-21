@@ -1,7 +1,7 @@
 package ro.dissertation.dbapp.repo;
 
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.PagingAndSortingRepository;
 import ro.dissertation.dbapp.model.IotObject;
 
-public interface IotObjectRepository extends CrudRepository<IotObject, Integer> {
+public interface IotObjectRepository extends PagingAndSortingRepository<IotObject, Integer> {
 }

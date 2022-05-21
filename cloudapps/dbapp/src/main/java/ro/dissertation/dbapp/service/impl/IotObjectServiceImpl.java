@@ -5,6 +5,9 @@ import ro.dissertation.dbapp.model.IotObject;
 import ro.dissertation.dbapp.repo.IotObjectRepository;
 import ro.dissertation.dbapp.service.api.IotObjectService;
 
+import org.springframework.data.domain.Pageable;
+
+
 @Service
 public class IotObjectServiceImpl implements IotObjectService {
 
@@ -22,5 +25,10 @@ public class IotObjectServiceImpl implements IotObjectService {
         }
 
         return object;
+    }
+
+    @Override
+    public Iterable<IotObject> getAll(Pageable page) {
+        return repository.findAll(page);
     }
 }

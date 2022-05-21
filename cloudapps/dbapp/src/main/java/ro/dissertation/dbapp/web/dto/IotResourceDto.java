@@ -1,12 +1,16 @@
 package ro.dissertation.dbapp.web.dto;
 
 import lombok.Data;
-
-import javax.validation.constraints.Min;
+import ro.dissertation.dbapp.model.IotResource;
 
 @Data
 public class IotResourceDto {
 
-    @Min(2000)
     private int resourceId;
+    private String friendlyName;
+
+    public IotResourceDto(IotResource resource) {
+        this.resourceId = resource.getResourceId();
+        this.friendlyName = resource.getFriendlyName();
+    }
 }

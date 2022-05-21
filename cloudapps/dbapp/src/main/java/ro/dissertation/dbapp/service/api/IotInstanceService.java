@@ -11,4 +11,6 @@ public interface IotInstanceService {
     IotInstance save(IotInstance instance);
 
     Optional<IotInstance> get(IotObject object, Machine machine);
+
+    Iterable<IotInstance> getByObject(IotObject object);
 }

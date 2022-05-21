@@ -13,5 +13,5 @@ public class IotObjectDto {
     private int objectId;
 
     @NotNull
-    private List<IotResourceDto> resources;
+    private List<IotResourceDtoSimple> resources;
 }

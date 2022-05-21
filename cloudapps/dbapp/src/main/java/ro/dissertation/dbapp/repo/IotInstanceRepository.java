@@ -12,4 +12,6 @@ public interface IotInstanceRepository extends CrudRepository<IotInstance, Long>
     Optional<IotInstance> findFirstByObjectOrderByInstanceIdDesc(IotObject object);
 
     Optional<IotInstance> findFirstByObjectAndMachine(IotObject object, Machine machine);
+
+    Iterable<IotInstance> findByObject(IotObject object);
 }

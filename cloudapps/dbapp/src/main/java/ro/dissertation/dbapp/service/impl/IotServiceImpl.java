@@ -1,17 +1,18 @@
 package ro.dissertation.dbapp.service.impl;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ro.dissertation.dbapp.model.IotInstance;
-import ro.dissertation.dbapp.model.IotObject;
-import ro.dissertation.dbapp.model.IotResource;
-import ro.dissertation.dbapp.model.Machine;
+import ro.dissertation.dbapp.model.*;
 import ro.dissertation.dbapp.service.api.*;
-import ro.dissertation.dbapp.web.dto.IotObjectResponseDto;
-import ro.dissertation.dbapp.web.dto.MachineRequestDto;
-import ro.dissertation.dbapp.web.dto.MachineResponseDto;
+import ro.dissertation.dbapp.web.dto.*;
+
+import org.springframework.data.domain.Pageable;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.stream.StreamSupport;
 
 @Service
 public class IotServiceImpl implements IotService {
@@ -20,12 +21,14 @@ public class IotServiceImpl implements IotService {
     private final IotObjectService objectService;
     private final IotInstanceService instanceService;
     private final IotResourceService resourceService;
+    private final IotRecordService recordService;
 
-    public IotServiceImpl(MachineService machineService, IotObjectService objectService, IotInstanceService instanceService, IotResourceService resourceService) {
+    public IotServiceImpl(MachineService machineService, IotObjectService objectService, IotInstanceService instanceService, IotResourceService resourceService, IotRecordService recordService) {
         this.machineService = machineService;
         this.objectService = objectService;
         this.instanceService = instanceService;
         this.resourceService = resourceService;
+        this.recordService = recordService;
     }
 
     @Transactional
@@ -67,5 +70,82 @@ public class IotServiceImpl implements IotService {
 
 
         return response;
+    }
+
+    @Override
+    public List<IotResourceWithValuesDto> getResources(int objectId) {
+        var object = new IotObject();
+        object.setObjectId(objectId);
+
+        var resources = resourceService.getByObject(object);
+        var response = new ArrayList<IotResourceWithValuesDto>();
+
+        return resources
+                .stream()
+                .map(iotResource -> {
+                    var dto = new IotResourceWithValuesDto();
+                    var list = new ArrayList<IotRecordDto>();
+                    dto.setResourceId(iotResource.getResourceId());
+                    dto.setFriendlyName(iotResource.getFriendlyName());
+                    dto.setRecords(list);
+                    var records = recordService
+                            .getByResource(iotResource, PageRequest.of(0, 50));
+
+                    records.forEach(record -> {
+                        var curr = new IotRecordDto(record);
+                        list.add(curr);
+                    });
+
+                    return dto;
+                })
+                .toList();
+    }
+
+    @Override
+    public Iterable<IotObjectWithInstancesDto> getObjects(Pageable page) {
+        var allObjects = objectService.getAll(page);
+        var response = new ArrayList<IotObjectWithInstancesDto>();
+
+        return StreamSupport
+                .stream(allObjects.spliterator(), false)
+                .map(object -> {
+                    var dto = new IotObjectWithInstancesDto();
+                    dto.setObjectId(object.getObjectId());
+
+                    var instances = instanceService.getByObject(object);
+                    var list = new ArrayList<IotInstanceWithMacDto>();
+                    instances.forEach(instance -> {
+                        var curr = new IotInstanceWithMacDto();
+                        curr.setInstanceId(instance.getInstanceId());
+                        curr.setMacAddress(instance.getMachine().getMacAddress());
+
+                        list.add(curr);
+                    });
+
+                    dto.setInstances(list);
+
+                    return dto;
+                }).toList();
+    }
+
+    @Override
+    public Iterable<Machine> getMachines(Pageable page) {
+        return machineService.get(page);
+    }
+
+    @Override
+    public IotRecord saveRecord(IotRecord record) {
+        return recordService.save(record);
+    }
+
+    @Override
+    public List<IotRecord> getRecords(int objectId, int resourceId, Pageable page) {
+        var optional = resourceService.getById(resourceId);
+        var resource = optional.orElseThrow(NoSuchElementException::new);
+        if (resource.getObject().getObjectId() != objectId) {
+            throw new RuntimeException();
+        }
+
+        return recordService.getByResource(resource, page);
     }
 }

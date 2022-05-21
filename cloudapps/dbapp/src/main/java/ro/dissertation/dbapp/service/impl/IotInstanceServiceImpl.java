@@ -42,4 +42,9 @@ public class IotInstanceServiceImpl implements IotInstanceService {
     public Optional<IotInstance> get(IotObject object, Machine machine) {
         return repository.findFirstByObjectAndMachine(object, machine);
     }
+
+    @Override
+    public Iterable<IotInstance> getByObject(IotObject object) {
+        return repository.findByObject(object);
+    }
 }
