@@ -18,3 +18,4 @@ It is possible to generate new unseal keys, provided you have a quorum of
 existing unseal keys shares. See "vault operator rekey" for more information.
 
 vault secrets enable -path=secret/ kv
+vault kv get -wrap-ttl=120 secret/dbapp

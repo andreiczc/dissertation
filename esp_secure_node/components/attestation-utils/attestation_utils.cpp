@@ -1,12 +1,15 @@
 #include "attestation_utils.h"
 
 #include "esp_log.h"
+#include "esp_wifi.h"
 #include "spiffs_utils.h"
 #include <HTTPClient.h>
 
-#define KEY_SIZE 32
+#define KEY_SIZE   32
+#define BLOCK_SIZE 16
 
-static constexpr auto *TAG = "ATTESTATION";
+static constexpr auto *OBJECT_ID = "1001";
+static constexpr auto *TAG       = "ATTESTATION";
 static const String    ATTESTATION_SERVER =
     "http://130.162.253.10:8080/attestation/";
 static const String DEVICE_CERT_PATH         = "/device.crt";
@@ -152,34 +155,39 @@ performClientFinish(const char *publicParams, const char *signature,
   size_t     testLength = 0;
   const auto testBytes  = crypto::decodeBase64((uint8_t *)test, testLength);
 
-  const auto iv       = crypto::generateRandomSequence(KEY_SIZE / 2);
+  const auto iv       = crypto::generateRandomSequence(BLOCK_SIZE);
   size_t     ivLength = 0;
-  const auto ivBase64 = crypto::encodeBase64(iv.get(), KEY_SIZE / 2, ivLength);
+  const auto ivBase64 = crypto::encodeBase64(iv.get(), BLOCK_SIZE, ivLength);
 
   ESP_LOGI(TAG, "IV: %s", ivBase64.c_str());
 
-  uint8_t payload[KEY_SIZE + 4] = "";
+  uint8_t payload[KEY_SIZE + BLOCK_SIZE] = "";
   memcpy(payload, iv.get(),
-         KEY_SIZE / 2); // before encryption since the IV is mutated!
+         BLOCK_SIZE); // before encryption since the IV is mutated!
+
+  uint8_t identifier[BLOCK_SIZE];
+  memset(identifier, 0, BLOCK_SIZE);
+  strcpy((char *)identifier, OBJECT_ID);
+  esp_wifi_get_mac((wifi_interface_t)ESP_IF_WIFI_STA, identifier + 4);
+
+  uint8_t plaintext[BLOCK_SIZE * 2];
+  memcpy(plaintext, testBytes.get(), BLOCK_SIZE);
+  memcpy(plaintext + BLOCK_SIZE, identifier, BLOCK_SIZE);
 
   size_t     outputLength2 = 0;
   const auto keyEncoded =
-      crypto::encodeBase64(generatedSecret.get(), 32, outputLength2);
+      crypto::encodeBase64(generatedSecret.get(), KEY_SIZE, outputLength2);
   ESP_LOGI(TAG, "Key: %s", keyEncoded.c_str());
 
   uint16_t   cipherTextSize = 0;
-  const auto cipherText     = crypto::encryptAes(
-          testBytes.get(), generatedSecret.get(), iv.get(), cipherTextSize);
+  const auto cipherText = crypto::encryptAes(plaintext, generatedSecret.get(),
+                                             iv.get(), cipherTextSize);
 
-  memcpy(payload + KEY_SIZE / 2, cipherText.get(), KEY_SIZE / 2);
-  payload[KEY_SIZE + 0] = '1';
-  payload[KEY_SIZE + 1] = '0';
-  payload[KEY_SIZE + 2] = '0';
-  payload[KEY_SIZE + 3] = '1';
+  memcpy(payload + BLOCK_SIZE, cipherText.get(), BLOCK_SIZE * 2);
 
   size_t     outputLength = 0;
   const auto payloadEncoded =
-      crypto::encodeBase64(payload, KEY_SIZE + 4, outputLength);
+      crypto::encodeBase64(payload, KEY_SIZE + BLOCK_SIZE, outputLength);
 
   HTTPClient client;
   const auto endpoint = ATTESTATION_SERVER + CLIENT_FINISHED_ENDPOINT;

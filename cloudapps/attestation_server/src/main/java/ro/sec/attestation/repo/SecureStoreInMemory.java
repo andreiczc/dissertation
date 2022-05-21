@@ -49,7 +49,8 @@ public class SecureStoreInMemory implements SecureStore {
                 store.forEach(this::dumpToStorage);
                 restartMqtt();
             } catch (IOException e) {
-                log.error("Couldn't write to file!");;
+                log.error("Couldn't write to file!");
+                ;
             }
         });
     }
@@ -63,16 +64,11 @@ public class SecureStoreInMemory implements SecureStore {
         return store.remove(key);
     }
 
-    private void restartMqtt()
-    {
+    private void restartMqtt() {
         var processBuilder = new ProcessBuilder();
         processBuilder.command("bash", "-c", "/etc/mosquitto/restart.sh");
         try {
-            var process = processBuilder.start();
-            var exitVal = process.waitFor();
-            if(exitVal != 0) {
-                throw new Exception();
-            }
+            processBuilder.start();
         } catch (Exception e) {
             log.error("Process had error. " + e.getMessage());
         }

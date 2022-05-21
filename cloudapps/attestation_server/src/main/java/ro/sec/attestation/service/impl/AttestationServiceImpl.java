@@ -133,14 +133,16 @@ public class AttestationServiceImpl implements AttestationService {
         var clientAddress = getRequestIp();
 
         var iv = Arrays.copyOfRange(payload, 0, 16);
-        var ciphertext = Arrays.copyOfRange(payload, 16, 32);
+        var ciphertext = Arrays.copyOfRange(payload, 16, payload.length);
         var sessionKey = secretStore.remove(clientAddress);
-        var objectIdBytes = Arrays.copyOfRange(payload, 32, payload.length);
 
         var secretBytes = testBytesMap.remove(clientAddress);
         var decrypted = CryptoUtils.decryptAes(ciphertext, iv, sessionKey);
 
-        if (!Arrays.equals(secretBytes, decrypted)) {
+        var decryptedTest = Arrays.copyOfRange(decrypted, 0, 16);
+        var decryptedIdentifier = Arrays.copyOfRange(decrypted, 16, decrypted.length);
+
+        if (!Arrays.equals(secretBytes, 0, secretBytes.length, decrypted, 0, secretBytes.length)) {
             log.info("Payload from {} wasn't correct", clientAddress);
 
             throw new BadTestBytesException();
@@ -148,9 +150,6 @@ public class AttestationServiceImpl implements AttestationService {
 
         pskStore.store(clientAddress, sessionKey);
         log.info("Session with {} has been established successfully", clientAddress);
-
-        var objectId = new String(objectIdBytes);
-        log.info("The object ID is {}", objectId);
     }
 
     private String getRequestIp() {
