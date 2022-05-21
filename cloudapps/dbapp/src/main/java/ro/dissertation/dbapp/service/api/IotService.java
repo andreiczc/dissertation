@@ -20,4 +20,10 @@ public interface IotService {
     IotRecord saveRecord(IotRecord record);
 
     List<IotRecordDto> getRecords(int objectId, int resourceId, Pageable page);
+
+    Machine updateMachine(MachineUpdateDto dto);
+
+    IotObjectUpdateDto updateObject(IotObjectUpdateDto dto);
+
+    IotResourceUpdateDto editResource(IotResourceUpdateDto dto);
 }

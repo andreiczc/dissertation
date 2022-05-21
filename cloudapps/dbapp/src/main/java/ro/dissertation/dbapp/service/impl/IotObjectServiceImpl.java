@@ -6,6 +6,9 @@ import ro.dissertation.dbapp.repo.IotObjectRepository;
 import ro.dissertation.dbapp.service.api.IotObjectService;
 
 import org.springframework.data.domain.Pageable;
+import ro.dissertation.dbapp.web.dto.IotObjectUpdateDto;
+
+import java.util.NoSuchElementException;
 
 
 @Service
@@ -30,5 +33,15 @@ public class IotObjectServiceImpl implements IotObjectService {
     @Override
     public Iterable<IotObject> getAll(Pageable page) {
         return repository.findAll(page);
+    }
+
+    @Override
+    public IotObjectUpdateDto update(IotObjectUpdateDto dto) {
+        var optional = repository.findById(dto.getObjectId());
+        var item = optional.orElseThrow(NoSuchElementException::new);
+        item.setFriendlyName(dto.getFriendlyName());
+        item = repository.save(item);
+
+        return dto;
     }
 }

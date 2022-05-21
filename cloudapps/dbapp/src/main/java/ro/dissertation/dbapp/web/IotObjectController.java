@@ -4,6 +4,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ro.dissertation.dbapp.service.api.IotService;
+import ro.dissertation.dbapp.web.dto.IotObjectUpdateDto;
 import ro.dissertation.dbapp.web.dto.IotObjectWithInstancesDto;
 import ro.dissertation.dbapp.web.dto.IotResourceWithValuesDto;
 
@@ -32,5 +33,12 @@ public class IotObjectController {
         return ResponseEntity
                 .ok()
                 .body(service.getObjects(PageRequest.of(pageNo, pageSize)));
+    }
+
+    @PutMapping("/object/edit")
+    public ResponseEntity<IotObjectUpdateDto> updateObject(@RequestBody IotObjectUpdateDto dto) {
+        return ResponseEntity
+                .ok()
+                .body(service.updateObject(dto));
     }
 }

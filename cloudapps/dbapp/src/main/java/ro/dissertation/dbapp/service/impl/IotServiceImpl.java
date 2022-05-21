@@ -150,4 +150,19 @@ public class IotServiceImpl implements IotService {
                 .map(IotRecordDto::new)
                 .toList();
     }
+
+    @Override
+    public Machine updateMachine(MachineUpdateDto dto) {
+        return machineService.update(dto);
+    }
+
+    @Override
+    public IotObjectUpdateDto updateObject(IotObjectUpdateDto dto) {
+        return objectService.update(dto);
+    }
+
+    @Override
+    public IotResourceUpdateDto editResource(IotResourceUpdateDto dto) {
+        return resourceService.update(dto);
+    }
 }

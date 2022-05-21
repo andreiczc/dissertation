@@ -6,16 +6,17 @@ import org.springframework.web.bind.annotation.*;
 import ro.dissertation.dbapp.model.IotRecord;
 import ro.dissertation.dbapp.service.api.IotService;
 import ro.dissertation.dbapp.web.dto.IotRecordDto;
+import ro.dissertation.dbapp.web.dto.IotResourceUpdateDto;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/")
-public class IotRecordController {
+public class IotResourceController {
 
     private final IotService service;
 
-    public IotRecordController(IotService service) {
+    public IotResourceController(IotService service) {
         this.service = service;
     }
 
@@ -33,5 +34,12 @@ public class IotRecordController {
         return ResponseEntity
                 .ok()
                 .body(service.saveRecord(record));
+    }
+
+    @PutMapping("/resource/edit")
+    public ResponseEntity<IotResourceUpdateDto> editResource(@RequestBody IotResourceUpdateDto dto) {
+        return ResponseEntity
+                .ok()
+                .body(service.editResource(dto));
     }
 }

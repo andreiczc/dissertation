@@ -7,6 +7,7 @@ import ro.dissertation.dbapp.model.Machine;
 import ro.dissertation.dbapp.service.api.IotService;
 import ro.dissertation.dbapp.web.dto.MachineRequestDto;
 import ro.dissertation.dbapp.web.dto.MachineResponseDto;
+import ro.dissertation.dbapp.web.dto.MachineUpdateDto;
 
 import javax.validation.Valid;
 
@@ -33,5 +34,12 @@ public class MachineController {
         return ResponseEntity
                 .ok()
                 .body(service.getMachines(PageRequest.of(pageNo, pageSize)));
+    }
+
+    @PutMapping("/machine/edit")
+    public ResponseEntity<Machine> updateMachine(@RequestBody @Valid MachineUpdateDto dto) {
+        return ResponseEntity
+                .ok()
+                .body(service.updateMachine(dto));
     }
 }

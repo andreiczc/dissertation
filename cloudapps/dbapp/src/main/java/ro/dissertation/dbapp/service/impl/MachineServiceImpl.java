@@ -5,8 +5,10 @@ import org.springframework.stereotype.Service;
 import ro.dissertation.dbapp.model.Machine;
 import ro.dissertation.dbapp.repo.MachineRepository;
 import ro.dissertation.dbapp.service.api.MachineService;
+import ro.dissertation.dbapp.web.dto.MachineUpdateDto;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
 public class MachineServiceImpl implements MachineService {
@@ -33,5 +35,14 @@ public class MachineServiceImpl implements MachineService {
         return repository
                 .findAll(page)
                 .toList();
+    }
+
+    @Override
+    public Machine update(MachineUpdateDto dto) {
+        var optional = repository.findById(dto.getMacAddress());
+        var item = optional.orElseThrow(NoSuchElementException::new);
+        item.setFriendlyName(dto.getFriendlyName());
+
+        return repository.save(item);
     }
 }
