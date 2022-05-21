@@ -7,8 +7,8 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestTemplate;
-import ro.dissertation.dbapp.model.VaultProperties;
-import ro.dissertation.dbapp.model.VaultResponse;
+import ro.dissertation.dbapp.model.infra.VaultProperties;
+import ro.dissertation.dbapp.model.infra.VaultResponse;
 
 @Configuration
 public class VaultRetriever {

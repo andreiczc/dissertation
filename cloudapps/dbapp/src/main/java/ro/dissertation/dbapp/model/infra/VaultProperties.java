@@ -1,4 +1,4 @@
-package ro.dissertation.dbapp.model;
+package ro.dissertation.dbapp.model.infra;
 
 import lombok.Data;
 

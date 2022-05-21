@@ -1,2 +1,12 @@
 mqtt:
   psk_file: D:\\test.key
+
+auth0:
+  issuer: "https://dissertationuaa.eu.auth0.com/"
+  client-id: vLH1l8zt2TiJGi36lsg3Bv9LpaWkIWlf
+  audience: secureiot
+  grant-type: client_credentials
+
+vault:
+  uri: https://130.162.253.10:8200/
+  token: mock_token

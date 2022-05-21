@@ -41,4 +41,4 @@ eureka:
 
 vault:
   uri: https://130.162.253.10:8200/
-  token: "hvs.CAESIOSeW-oz_9dv2YpZ_hefCILO5JQtfGSU45oo6D7KRHpMGh4KHGh2cy5SaGhpVkRzYnFWc3Npa2U0M3JOUVB4Umg"
+  token: "hvs.CAESIPM_Wiqjj9GnNdd8P6bj80xQoD9hxMWldmJ-DLrdGOTEGh4KHGh2cy5ITXh3aUtKckRRV3hzRHdqWG1hYVlaanc"

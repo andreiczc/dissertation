@@ -97,10 +97,10 @@ static std::unique_ptr<uint8_t[]> depadPkcs5(uint8_t *input, size_t inputLength)
   return std::move(result);
 }
 
-std::unique_ptr<uint8_t[]> encryptAes(uint8_t *input, uint8_t *key, uint8_t *iv,
+std::unique_ptr<uint8_t[]> encryptAes(uint8_t *input, size_t inputLength,
+                                      uint8_t *key, uint8_t *iv,
                                       uint16_t &outputSize)
 {
-  const auto inputLength = strlen((char *)input);
   ESP_LOGI(TAG, "Plaintext size: %d", inputLength);
 
   outputSize = inputLength;

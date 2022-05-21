@@ -141,6 +141,9 @@ public class AttestationServiceImpl implements AttestationService {
 
         var decryptedTest = Arrays.copyOfRange(decrypted, 0, 16);
         var decryptedIdentifier = Arrays.copyOfRange(decrypted, 16, decrypted.length);
+        var separatorIdx = indexOf(decryptedIdentifier, (byte)'|');
+        var objectId = new String(Arrays.copyOfRange(decryptedIdentifier, 0, separatorIdx));
+        var macAddress = hexToString(Arrays.copyOfRange(decryptedIdentifier, 4, decryptedIdentifier.length));
 
         if (!Arrays.equals(secretBytes, 0, secretBytes.length, decrypted, 0, secretBytes.length)) {
             log.info("Payload from {} wasn't correct", clientAddress);
@@ -150,11 +153,32 @@ public class AttestationServiceImpl implements AttestationService {
 
         pskStore.store(clientAddress, sessionKey);
         log.info("Session with {} has been established successfully", clientAddress);
+        log.info("Object ID: {} with MAC value {}", objectId, macAddress);
     }
 
     private String getRequestIp() {
         return ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes())
                 .getRequest()
                 .getRemoteAddr();
+    }
+
+
+    private int indexOf(byte[] input, byte element) {
+        for (var i = 0; i < input.length; ++i) {
+            if (input[i] == element) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private String hexToString(byte[] input) {
+        var result = new StringBuilder();
+        for (var b : input) {
+            result.append(String.format("%02X ", b));
+        }
+
+        return result.toString();
     }
 }

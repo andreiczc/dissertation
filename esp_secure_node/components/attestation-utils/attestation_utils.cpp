@@ -7,9 +7,12 @@
 
 #define KEY_SIZE   32
 #define BLOCK_SIZE 16
+#define MAC_SIZE   6
 
-static constexpr auto *OBJECT_ID = "1001";
-static constexpr auto *TAG       = "ATTESTATION";
+static constexpr auto *MACHINE_DESCRIPTOR =
+    "[{\"1001\":[\"2001\"]},{\"1002\":[\"2002\"]},{\"1003\":"
+    "[\"2003\"]},{\"1004\":[\"2004\"]}]";
+static constexpr auto *TAG = "ATTESTATION";
 static const String    ATTESTATION_SERVER =
     "http://130.162.253.10:8080/attestation/";
 static const String DEVICE_CERT_PATH         = "/device.crt";
@@ -165,14 +168,19 @@ performClientFinish(const char *publicParams, const char *signature,
   memcpy(payload, iv.get(),
          BLOCK_SIZE); // before encryption since the IV is mutated!
 
-  uint8_t identifier[BLOCK_SIZE];
-  memset(identifier, 0, BLOCK_SIZE);
-  strcpy((char *)identifier, OBJECT_ID);
-  esp_wifi_get_mac((wifi_interface_t)ESP_IF_WIFI_STA, identifier + 4);
+  auto requiredSize = (strlen(MACHINE_DESCRIPTOR) + MAC_SIZE);
+  requiredSize      = requiredSize + (BLOCK_SIZE - requiredSize % BLOCK_SIZE);
 
-  uint8_t plaintext[BLOCK_SIZE * 2];
-  memcpy(plaintext, testBytes.get(), BLOCK_SIZE);
-  memcpy(plaintext + BLOCK_SIZE, identifier, BLOCK_SIZE);
+  std::unique_ptr<uint8_t[]> identifier(new uint8_t[requiredSize]);
+
+  memset(identifier.get(), 0, requiredSize);
+  strcpy((char *)identifier.get(), MACHINE_DESCRIPTOR);
+  esp_wifi_get_mac((wifi_interface_t)ESP_IF_WIFI_STA,
+                   identifier.get() + strlen(MACHINE_DESCRIPTOR));
+
+  std::unique_ptr<uint8_t[]> plaintext(new uint8_t[requiredSize + BLOCK_SIZE]);
+  memcpy(plaintext.get(), testBytes.get(), BLOCK_SIZE);
+  memcpy(plaintext.get() + BLOCK_SIZE, identifier.get(), requiredSize);
 
   size_t     outputLength2 = 0;
   const auto keyEncoded =
@@ -180,10 +188,11 @@ performClientFinish(const char *publicParams, const char *signature,
   ESP_LOGI(TAG, "Key: %s", keyEncoded.c_str());
 
   uint16_t   cipherTextSize = 0;
-  const auto cipherText = crypto::encryptAes(plaintext, generatedSecret.get(),
-                                             iv.get(), cipherTextSize);
+  const auto cipherText =
+      crypto::encryptAes(plaintext.get(), requiredSize + BLOCK_SIZE,
+                         generatedSecret.get(), iv.get(), cipherTextSize);
 
-  memcpy(payload + BLOCK_SIZE, cipherText.get(), BLOCK_SIZE * 2);
+  memcpy(payload + BLOCK_SIZE, cipherText.get(), requiredSize + BLOCK_SIZE);
 
   size_t     outputLength = 0;
   const auto payloadEncoded =
