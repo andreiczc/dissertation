@@ -1,6 +1,7 @@
 package ro.dissertation.dbapp.service.impl;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ro.dissertation.dbapp.model.IotInstance;
 import ro.dissertation.dbapp.model.IotObject;
 import ro.dissertation.dbapp.model.IotResource;
@@ -27,6 +28,7 @@ public class IotServiceImpl implements IotService {
         this.resourceService = resourceService;
     }
 
+    @Transactional
     @Override
     public MachineResponseDto upsert(MachineRequestDto machine) {
         var response = new MachineResponseDto();
@@ -52,6 +54,7 @@ public class IotServiceImpl implements IotService {
             var responseDto = new IotObjectResponseDto();
             responseDto.setObjectId(iotObject.getObjectId());
             responseDto.setInstanceId(instance.getInstanceId());
+            objectList.add(responseDto);
 
             iotObjectDto.getResources().forEach(iotResourceDto -> {
                 var iotResource = new IotResource();

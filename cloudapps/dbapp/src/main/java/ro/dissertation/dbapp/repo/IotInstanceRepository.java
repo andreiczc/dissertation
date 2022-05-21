@@ -7,7 +7,7 @@ import ro.dissertation.dbapp.model.Machine;
 
 import java.util.Optional;
 
-public interface IotInstanceRepository extends CrudRepository<IotInstance, Integer> {
+public interface IotInstanceRepository extends CrudRepository<IotInstance, Long> {
 
     Optional<IotInstance> findFirstByObjectOrderByInstanceIdDesc(IotObject object);
 

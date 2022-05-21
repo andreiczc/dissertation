@@ -12,7 +12,7 @@ import ro.dissertation.dbapp.web.dto.MachineResponseDto;
 import javax.validation.Valid;
 
 @RestController
-@RequestMapping("/iot")
+@RequestMapping("/")
 public class IotController {
 
     private final IotService service;
