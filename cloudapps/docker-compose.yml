@@ -26,7 +26,7 @@ services:
       - registry
       - mysql
     environment:
-      - WRAPPING_TOKEN=hvs.CAESIM9GEnXUBmTOsYfCcHV7VWe603BXGmYBBKwHsPt6wwjDGh4KHGh2cy5qdW13dGc5Z2FoQ2xWYzU1OVVJWlp5QlU
+      - WRAPPING_TOKEN=hvs.CAESIMrexEUDg6_P7UmFlpKMKhp_nyX0udJWwYkUF7jWINhNGh4KHGh2cy5uaTFNYjd5R2FGMllPcllBVkxxZHdCSVc
   gateway:
     image: gateway
     restart: unless-stopped

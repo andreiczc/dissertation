@@ -1,22 +1,18 @@
-Unseal Key 1: yQ0fh5uFCm6a+G32a8PP2YAW/1b0CZcHUZ77YYa80Gb/
-Unseal Key 2: M3nLHgc0lGg6Hwe1xOQjqlNYG0S/oe4xdBf9UkYBj3jG
-Unseal Key 3: M9D6dp5IhrFnJqgPRshShmgZY/UqhCtAxnigF5bCs0cq
-Unseal Key 4: 3sPhmLYOYlK/C4w8jRWT6y3taoRgh81ei0GkH7bMvB3Z
-Unseal Key 5: Xvze25GTPEGlGYer+O6eSohv56aJPCpMj58Fc0UA0EH9
+Unseal Key 1: WKbHqfVGGTeY/rwff9mdYypmwmKa+9mfyEGNF7JBY4C6
+Unseal Key 2: nhf0oWWxwHMbbXl+jxMNlkTxv0xj3I81Tk0FRMPkv/yf
+Unseal Key 3: Vbw9UfzJRliLlzbdVxHUxdfukCVWCuxMaNUVyiDbZAbl
+Unseal Key 4: F7vOxVqXd3PPSD9A7E6yh5vH+ujjP1tAkjuJLliczbVe
+Unseal Key 5: wEUWlOaj40WSJ2rTUoOLjJlf8blT2X4J9iUBlZWF8wCc
 
-Initial Root Token: hvs.FOGApS3xGoAmfnuioVWRNJdm
+Initial Root Token: hvs.uPNUO7vPg47TPyscofQIleL5
 
-Vault initialized with 5 key shares and a key threshold of 3. Please securely
-distribute the key shares printed above. When the Vault is re-sealed,
-restarted, or stopped, you must supply at least 3 of these keys to unseal it
-before it can start servicing requests.
+vault server -config vault.conf
 
-Vault does not store the generated root key. Without at least 3 keys to
-reconstruct the root key, Vault will remain permanently sealed!
+vault operator init
 
-It is possible to generate new unseal keys, provided you have a quorum of
-existing unseal keys shares. See "vault operator rekey" for more information.
+vault operator unseal
 
+vault login
 
 vault secrets enable -path=secret/ kv
 
@@ -24,4 +20,17 @@ vault kv put secret/attestation_server clientSecret=U1VxnRduRqC28-dRkzG6BYuyoNSj
 vault kv put secret/dbapp dbUser=root dbPass=root
 vault kv put secret/mqttclient clientSecret=27Kuk7Vq52wTaFdLrN1qeqbWzTpzYI2KD_7_O-IAmTZZDffoeOYdd9Oy11ejuRWh
 
-vault kv get -wrap-ttl=120 secret/dbapp
+vault kv get -format=json secret/mqttclient
+
+vault kv get -wrap-ttl=1200 secret/dbapp
+
+backend "file" {
+  path = "/home/ubuntu/vault/data"
+}
+
+listener "tcp" {
+  address = "0.0.0.0:8200"
+  tls_cert_file = "./certs/vault.crt"
+  tls_key_file = "./certs/vault.key"
+  tls_client_ca_file = "./certs/ca.crt"
+}
