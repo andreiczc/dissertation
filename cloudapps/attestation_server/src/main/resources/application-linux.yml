@@ -9,7 +9,7 @@ auth0:
 
 vault:
   uri: https://130.162.253.10:8200/
-  token: mock_token
+  token: ${WRAPPING_TOKEN}
 
 eureka:
   client:

@@ -27,19 +27,6 @@ services:
       - mysql
     environment:
       - WRAPPING_TOKEN=hvs.CAESIM9GEnXUBmTOsYfCcHV7VWe603BXGmYBBKwHsPt6wwjDGh4KHGh2cy5qdW13dGc5Z2FoQ2xWYzU1OVVJWlp5QlU
-  attestation-server:
-    image: attestation_server
-    networks:
-      - iot-net
-    depends_on:
-      - registry
-    environment:
-      - WRAPPING_TOKEN=hvs.CAESIIkvTHFbTilgOnWFHrnipuksdsFLT6GIEI-UKW8VSxk9Gh4KHGh2cy4zTE83WTNaWTJWclMxU24yU3JCVloyZzk
-    volumes:
-      - /etc/mosquitto/certs:/usr/app/certs
-    ports:
-      - "8082:8082"
-      - "5005:5005"
   gateway:
     image: gateway
     restart: unless-stopped
