@@ -1,5 +1,8 @@
+server:
+  port: 8082
+
 mqtt:
-  psk_file: /etc/mosquitto/certs/psk_file.txt
+  psk_file: /opt/homebrew/etc/mosquitto/certs/psk_file.txt
 
 auth0:
   issuer: "https://dissertationuaa.eu.auth0.com/"
@@ -8,13 +11,5 @@ auth0:
   grant-type: client_credentials
 
 vault:
-  uri: https://130.162.253.10:8200/
-  token: ${WRAPPING_TOKEN}
-
-eureka:
-  client:
-    register-with-eureka: false
-    service-url:
-      defaultZone: http://localhost:8761/eureka
-    healthcheck:
-      enabled: true
+  uri: https://127.0.0.1:8200/
+  token: hvs.CAESIHzytHe8YEuGdw-YBOHmSVbqsM_Fu1gGnWuTK_VCtZnRGh4KHGh2cy44MTNjdWNLOG1ST0twRUVVMUd1dThNdDU

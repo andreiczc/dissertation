@@ -40,5 +40,5 @@ eureka:
       enabled: true
 
 vault:
-  uri: https://130.162.253.10:8200/
+  uri: https://localhost:8200/
   token: "hvs.CAESIDgOhkWP-uW4faKZWPLooZT0StLbE658nGu7xSqkCq32Gh4KHGh2cy5raVY0a3IxQkEyMzlCMEFkTVJtaEl2ekc"
