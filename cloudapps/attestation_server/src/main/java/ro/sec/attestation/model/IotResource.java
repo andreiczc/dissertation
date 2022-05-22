@@ -3,7 +3,7 @@ package ro.sec.attestation.model;
 import lombok.Data;
 
 @Data
-public class VaultProperties {
+public class IotResource {
 
-    private String clientSecret;
+    private int resourceId;
 }

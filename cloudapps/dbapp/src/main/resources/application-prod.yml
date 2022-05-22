@@ -1,0 +1,37 @@
+server:
+  port: 8081
+
+auth0:
+  audience: secure_iot
+
+spring:
+  application:
+    name: dbapp
+  zipkin:
+    base-url: http://zipkin:9411/
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://dissertationuaa.eu.auth0.com/
+  datasource:
+    url: jdbc:mysql://mysql:3306/secureiot
+  jpa:
+    hibernate:
+      ddl-auto: none
+  cloud:
+    config:
+      import-check:
+        enabled: false
+
+eureka:
+  client:
+    registerWithEureka: true
+    serviceUrl:
+      defaultZone: http://registry:8761/eureka
+    healthcheck:
+      enabled: true
+
+vault:
+  uri: https://130.162.253.10:8200/
+  token: ${WRAPPING_TOKEN}

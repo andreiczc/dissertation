@@ -1,18 +1,27 @@
 package ro.sec.attestation.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.netflix.discovery.EurekaClient;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import ro.sec.attestation.Application;
+import ro.sec.attestation.model.MachineIdentifier;
 import ro.sec.attestation.repo.SecureStore;
 import ro.sec.attestation.service.api.AttestationService;
 import ro.sec.attestation.service.exception.BadSignatureException;
 import ro.sec.attestation.service.exception.BadTestBytesException;
 import ro.sec.attestation.web.dto.ClientPayload;
+import ro.sec.attestation.web.dto.MachineIdentifierRequestDto;
+import ro.sec.attestation.web.dto.MachineIdentifierResponseDto;
 import ro.sec.attestation.web.dto.ServerPayload;
 import ro.sec.crypto.CryptoUtils;
 
@@ -29,6 +38,9 @@ import java.util.Map;
 @Service
 public class AttestationServiceImpl implements AttestationService {
 
+    private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String AUTHORIZATION_PATTERN = "Bearer %s";
+    private static final String URL_PATTERN = "http://%s:8080/iot/upsert";
     private static final Logger log = LoggerFactory.getLogger(AttestationServiceImpl.class);
     private static final int TEST_BYTES_LENGTH = 16;
 
@@ -39,9 +51,13 @@ public class AttestationServiceImpl implements AttestationService {
     private final Map<String, Certificate> certificateMap;
     private final Map<String, byte[]> testBytesMap;
     private final String bearerToken;
+    private final RestTemplate restTemplate;
+    private final EurekaClient eurekaClient;
 
     @Autowired
-    public AttestationServiceImpl(SecureStore pskStore, String bearerToken) throws Exception {
+    public AttestationServiceImpl(SecureStore pskStore, String bearerToken, RestTemplate restTemplate, EurekaClient eurekaClient) throws Exception {
+        this.restTemplate = restTemplate;
+        this.eurekaClient = eurekaClient;
         try (var ownCertificateInputStream = Application.class.getClassLoader().getResourceAsStream("server.crt");
              var privateKeyInputStream = Application.class.getClassLoader().getResourceAsStream("server.key")) {
             this.certificate = CertificateFactory
@@ -128,7 +144,7 @@ public class AttestationServiceImpl implements AttestationService {
     }
 
     @Override
-    public void clientFinish(String encodedPayload) throws Exception {
+    public MachineIdentifierResponseDto clientFinish(String encodedPayload) throws Exception {
         var payload = Base64.getDecoder().decode(encodedPayload);
         var clientAddress = getRequestIp();
 
@@ -140,10 +156,6 @@ public class AttestationServiceImpl implements AttestationService {
         var decrypted = CryptoUtils.decryptAes(ciphertext, iv, sessionKey);
 
         var decryptedTest = Arrays.copyOfRange(decrypted, 0, 16);
-        var decryptedIdentifier = Arrays.copyOfRange(decrypted, 16, decrypted.length);
-        var separatorIdx = indexOf(decryptedIdentifier, (byte)'|');
-        var objectId = new String(Arrays.copyOfRange(decryptedIdentifier, 0, separatorIdx));
-        var macAddress = hexToString(Arrays.copyOfRange(decryptedIdentifier, 4, decryptedIdentifier.length));
 
         if (!Arrays.equals(secretBytes, 0, secretBytes.length, decrypted, 0, secretBytes.length)) {
             log.info("Payload from {} wasn't correct", clientAddress);
@@ -153,32 +165,34 @@ public class AttestationServiceImpl implements AttestationService {
 
         pskStore.store(clientAddress, sessionKey);
         log.info("Session with {} has been established successfully", clientAddress);
-        log.info("Object ID: {} with MAC value {}", objectId, macAddress);
+
+        var decryptedInfo = Arrays.copyOfRange(decrypted, 16, decrypted.length);
+        var mappedObject = new ObjectMapper().readValue(decryptedInfo, MachineIdentifier.class);
+
+        return issueRequest(mappedObject);
     }
+
+    private MachineIdentifierResponseDto issueRequest(MachineIdentifier payload) {
+        var instance = eurekaClient.getNextServerFromEureka("gateway", false);
+        var ip = instance.getIPAddr();
+
+        var headers = new HttpHeaders();
+        headers.set(AUTHORIZATION_HEADER, String.format(AUTHORIZATION_PATTERN, bearerToken));
+        var entity = new HttpEntity<>(new MachineIdentifierRequestDto(payload), headers);
+        var response = restTemplate
+                .exchange(String.format(URL_PATTERN, ip),
+                        HttpMethod.POST,
+                        entity,
+                        MachineIdentifierResponseDto.class);
+
+        return response
+                .getBody();
+    }
+
 
     private String getRequestIp() {
         return ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes())
                 .getRequest()
                 .getRemoteAddr();
-    }
-
-
-    private int indexOf(byte[] input, byte element) {
-        for (var i = 0; i < input.length; ++i) {
-            if (input[i] == element) {
-                return i;
-            }
-        }
-
-        return -1;
-    }
-
-    private String hexToString(byte[] input) {
-        var result = new StringBuilder();
-        for (var b : input) {
-            result.append(String.format("%02X ", b));
-        }
-
-        return result.toString();
     }
 }

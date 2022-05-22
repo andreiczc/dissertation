@@ -18,4 +18,4 @@ auth0:
 
 vault:
   uri: https://130.162.253.10:8200/
-  token: "hvs.CAESIEoY1l0m7PPjSIHx18qvhlXn2CWJRDa2_aYsiVnasQ_3Gh4KHGh2cy43REl0MW90dmd3SlcwVXVNZmd2REVTaUI"
+  token: ${WRAPPING_TOKEN}

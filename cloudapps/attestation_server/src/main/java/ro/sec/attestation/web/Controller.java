@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ro.sec.attestation.service.api.AttestationService;
 import ro.sec.attestation.web.dto.ClientPayload;
+import ro.sec.attestation.web.dto.MachineIdentifierResponseDto;
 import ro.sec.attestation.web.dto.ServerPayload;
 
 @RestController
@@ -38,9 +39,9 @@ public class Controller {
     }
 
     @PostMapping(CLIENT_FINISHED_RSC)
-    public ResponseEntity<Void> clientFinished(@RequestBody String payload) throws Exception {
-        service.clientFinish(payload);
-
-        return ResponseEntity.ok().body(null);
+    public ResponseEntity<MachineIdentifierResponseDto> clientFinished(@RequestBody String payload) throws Exception {
+        return ResponseEntity
+                .ok()
+                .body(service.clientFinish(payload));
     }
 }

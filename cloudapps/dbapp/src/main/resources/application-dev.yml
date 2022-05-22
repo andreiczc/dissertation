@@ -18,6 +18,14 @@ spring:
     show_sql: true
     hibernate:
       ddl-auto: update
+#    properties:
+#      javax:
+#        persistence:
+#          schema-generation:
+#            scripts:
+#              action: create
+#              create-target: create.sql
+#              create-source: metadata
   cloud:
     config:
       import-check:
@@ -33,4 +41,4 @@ eureka:
 
 vault:
   uri: https://130.162.253.10:8200/
-  token: "hvs.CAESICwjfH0cewT9fEoXEUkM-l6vLYs7de4m7Ek6fUQQtzUVGh4KHGh2cy56bVU2bmpRNjNSTXZsUmJ2RjZxWXdpeGY"
+  token: "hvs.CAESIDgOhkWP-uW4faKZWPLooZT0StLbE658nGu7xSqkCq32Gh4KHGh2cy5raVY0a3IxQkEyMzlCMEFkTVJtaEl2ekc"

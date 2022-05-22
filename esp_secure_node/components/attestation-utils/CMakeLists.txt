@@ -5,4 +5,5 @@ idf_component_register(
           arduino
           crypto-utils
           mbedtls
-          spiffs-utils)
+          spiffs-utils
+          json)

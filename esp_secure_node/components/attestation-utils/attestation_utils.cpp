@@ -1,17 +1,23 @@
 #include "attestation_utils.h"
 
+#include "cJSON.h"
 #include "esp_log.h"
 #include "esp_wifi.h"
 #include "spiffs_utils.h"
 #include <HTTPClient.h>
+#include <map>
+#include <vector>
 
 #define KEY_SIZE   32
 #define BLOCK_SIZE 16
 #define MAC_SIZE   6
 
-static constexpr auto *MACHINE_DESCRIPTOR =
-    "[{\"1001\":[\"2001\"]},{\"1002\":[\"2002\"]},{\"1003\":"
-    "[\"2003\"]},{\"1004\":[\"2004\"]}]";
+static const std::map<int, std::vector<int>> OBJECT_IDS{
+    {1001, {2001}},
+    {1002, {2002}},
+    {1003, {2003}},
+    {1004, {2004}},
+};
 static constexpr auto *TAG = "ATTESTATION";
 static const String    ATTESTATION_SERVER =
     "http://130.162.253.10:8080/attestation/";
@@ -104,6 +110,38 @@ String performKeyExchange(mbedtls_ecdh_context &ecdhParams)
   return client.getString();
 }
 
+static char *constructIdentifier()
+{
+  ESP_LOGI(TAG, "Constructing Node identifier");
+
+  auto *json = cJSON_CreateObject();
+  cJSON_AddStringToObject(json, "macAddress", WiFi.macAddress().c_str());
+  auto *array = cJSON_AddArrayToObject(json, "objects");
+
+  for (const auto &item : OBJECT_IDS)
+  {
+    auto *curr = cJSON_CreateObject();
+    cJSON_AddNumberToObject(curr, "objectId", item.first);
+
+    auto *rscArray = cJSON_AddArrayToObject(curr, "resources");
+    for (const auto &rsc : item.second)
+    {
+      auto *obj = cJSON_CreateObject();
+      cJSON_AddNumberToObject(obj, "resourceId", rsc);
+      cJSON_AddItemToArray(rscArray, obj);
+    }
+
+    cJSON_AddItemToArray(array, curr);
+  }
+
+  const auto string = cJSON_Print(json);
+  cJSON_Delete(json);
+
+  ESP_LOGI(TAG, "Identifier: %s", string);
+
+  return string;
+}
+
 std::unique_ptr<uint8_t[]>
 performClientFinish(const char *publicParams, const char *signature,
                     const char *test, const uint8_t *serverPoint,
@@ -164,23 +202,20 @@ performClientFinish(const char *publicParams, const char *signature,
 
   ESP_LOGI(TAG, "IV: %s", ivBase64.c_str());
 
-  uint8_t payload[KEY_SIZE + BLOCK_SIZE] = "";
-  memcpy(payload, iv.get(),
+  const auto identifier   = constructIdentifier();
+  const auto requiredSize = strlen(identifier);
+  const auto paddedSize =
+      requiredSize + (BLOCK_SIZE - requiredSize % BLOCK_SIZE);
+  const auto totalSize = paddedSize + BLOCK_SIZE;
+
+  std::unique_ptr<uint8_t[]> payload(new uint8_t[totalSize + BLOCK_SIZE]);
+  memcpy(payload.get(), iv.get(),
          BLOCK_SIZE); // before encryption since the IV is mutated!
 
-  auto requiredSize = (strlen(MACHINE_DESCRIPTOR) + MAC_SIZE);
-  requiredSize      = requiredSize + (BLOCK_SIZE - requiredSize % BLOCK_SIZE);
-
-  std::unique_ptr<uint8_t[]> identifier(new uint8_t[requiredSize]);
-
-  memset(identifier.get(), 0, requiredSize);
-  strcpy((char *)identifier.get(), MACHINE_DESCRIPTOR);
-  esp_wifi_get_mac((wifi_interface_t)ESP_IF_WIFI_STA,
-                   identifier.get() + strlen(MACHINE_DESCRIPTOR));
-
-  std::unique_ptr<uint8_t[]> plaintext(new uint8_t[requiredSize + BLOCK_SIZE]);
+  std::unique_ptr<uint8_t[]> plaintext(new uint8_t[totalSize]);
+  memset(plaintext.get(), 0, totalSize);
   memcpy(plaintext.get(), testBytes.get(), BLOCK_SIZE);
-  memcpy(plaintext.get() + BLOCK_SIZE, identifier.get(), requiredSize);
+  memcpy(plaintext.get() + BLOCK_SIZE, identifier, requiredSize);
 
   size_t     outputLength2 = 0;
   const auto keyEncoded =
@@ -189,14 +224,14 @@ performClientFinish(const char *publicParams, const char *signature,
 
   uint16_t   cipherTextSize = 0;
   const auto cipherText =
-      crypto::encryptAes(plaintext.get(), requiredSize + BLOCK_SIZE,
-                         generatedSecret.get(), iv.get(), cipherTextSize);
+      crypto::encryptAes(plaintext.get(), totalSize, generatedSecret.get(),
+                         iv.get(), cipherTextSize);
 
-  memcpy(payload + BLOCK_SIZE, cipherText.get(), requiredSize + BLOCK_SIZE);
+  memcpy(payload.get() + BLOCK_SIZE, cipherText.get(), totalSize);
 
   size_t     outputLength = 0;
   const auto payloadEncoded =
-      crypto::encodeBase64(payload, KEY_SIZE + BLOCK_SIZE, outputLength);
+      crypto::encodeBase64(payload.get(), totalSize + BLOCK_SIZE, outputLength);
 
   HTTPClient client;
   const auto endpoint = ATTESTATION_SERVER + CLIENT_FINISHED_ENDPOINT;
