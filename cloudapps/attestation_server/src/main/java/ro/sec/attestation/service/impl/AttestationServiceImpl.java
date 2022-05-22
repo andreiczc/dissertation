@@ -1,7 +1,6 @@
 package ro.sec.attestation.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.netflix.discovery.EurekaClient;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +39,7 @@ public class AttestationServiceImpl implements AttestationService {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String AUTHORIZATION_PATTERN = "Bearer %s";
-    private static final String URL_PATTERN = "http://%s:8080/iot/upsert";
+    private static final String ENDPOINT = "http://188.27.95.91:8080/iot/upsert";
     private static final Logger log = LoggerFactory.getLogger(AttestationServiceImpl.class);
     private static final int TEST_BYTES_LENGTH = 16;
 
@@ -52,12 +51,10 @@ public class AttestationServiceImpl implements AttestationService {
     private final Map<String, byte[]> testBytesMap;
     private final String bearerToken;
     private final RestTemplate restTemplate;
-    private final EurekaClient eurekaClient;
 
     @Autowired
-    public AttestationServiceImpl(SecureStore pskStore, String bearerToken, RestTemplate restTemplate, EurekaClient eurekaClient) throws Exception {
+    public AttestationServiceImpl(SecureStore pskStore, String bearerToken, RestTemplate restTemplate) throws Exception {
         this.restTemplate = restTemplate;
-        this.eurekaClient = eurekaClient;
         try (var ownCertificateInputStream = Application.class.getClassLoader().getResourceAsStream("server.crt");
              var privateKeyInputStream = Application.class.getClassLoader().getResourceAsStream("server.key")) {
             this.certificate = CertificateFactory
@@ -173,14 +170,11 @@ public class AttestationServiceImpl implements AttestationService {
     }
 
     private MachineIdentifierResponseDto issueRequest(MachineIdentifier payload) {
-        var instance = eurekaClient.getNextServerFromEureka("gateway", false);
-        var ip = instance.getIPAddr();
-
         var headers = new HttpHeaders();
         headers.set(AUTHORIZATION_HEADER, String.format(AUTHORIZATION_PATTERN, bearerToken));
         var entity = new HttpEntity<>(new MachineIdentifierRequestDto(payload), headers);
         var response = restTemplate
-                .exchange(String.format(URL_PATTERN, ip),
+                .exchange(ENDPOINT,
                         HttpMethod.POST,
                         entity,
                         MachineIdentifierResponseDto.class);
