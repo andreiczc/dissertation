@@ -15,3 +15,5 @@ model.add(layers.Conv1D(filters=1, kernel_size=1, activation='relu', padding='sa
 model.compile(optimizer=adam_v2.Adam(learning_rate=LEARNING_RATE), loss='mse')
 
 model.save('models/lstm_unweighted')
+
+model.summary()
