@@ -1,3 +1,6 @@
+server:
+  port: 8082
+
 mqtt:
   psk_file: D:\\test.key
 
@@ -10,11 +13,3 @@ auth0:
 vault:
   uri: https://130.162.253.10:8200/
   token: mock_token
-
-eureka:
-  client:
-    register-with-eureka: false
-    service-url:
-      defaultZone: http://localhost:8761/eureka
-    healthcheck:
-      enabled: true
