@@ -154,7 +154,7 @@ public class AttestationServiceImpl implements AttestationService {
 
         var decryptedTest = Arrays.copyOfRange(decrypted, 0, 16);
 
-        if (!Arrays.equals(secretBytes, 0, secretBytes.length, decrypted, 0, secretBytes.length)) {
+        if (!Arrays.equals(secretBytes, decryptedTest)) {
             log.info("Payload from {} wasn't correct", clientAddress);
 
             throw new BadTestBytesException();
@@ -165,8 +165,10 @@ public class AttestationServiceImpl implements AttestationService {
 
         var decryptedInfo = Arrays.copyOfRange(decrypted, 16, decrypted.length);
         var mappedObject = new ObjectMapper().readValue(decryptedInfo, MachineIdentifier.class);
+        log.info("Received value: {}", mappedObject.toString());
 
-        return issueRequest(mappedObject);
+        // return issueRequest(mappedObject);
+        return null;
     }
 
     private MachineIdentifierResponseDto issueRequest(MachineIdentifier payload) {

@@ -2,7 +2,7 @@ server:
   port: 8082
 
 mqtt:
-  psk_file: /opt/homebrew/etc/mosquitto/certs/psk_file.txt
+  psk_file: /etc/mosquitto/certs/psk_file.txt
 
 auth0:
   issuer: "https://dissertationuaa.eu.auth0.com/"
@@ -12,4 +12,4 @@ auth0:
 
 vault:
   uri: https://127.0.0.1:8200/
-  token: hvs.CAESIHzytHe8YEuGdw-YBOHmSVbqsM_Fu1gGnWuTK_VCtZnRGh4KHGh2cy44MTNjdWNLOG1ST0twRUVVMUd1dThNdDU
+  token: ${WRAPPING_TOKEN}
