@@ -15,7 +15,7 @@ static constexpr auto *PRIVATE_KEY =
     "afe65d226f1d8f3706cdf02d509166e43ccd17c8a08aba9d486b4f10c1192960";
 static constexpr auto *ETHERSCAN_TX = "https://ropsten.etherscan.io/tx/";
 
-static uint32_t nonce = 50;
+static uint32_t nonce = 11;
 
 static Web3 web3(INFURA_HOST, INFURA_PATH);
 
@@ -30,7 +30,7 @@ std::string callContract(const std::string &contractAddress, std::string &data)
   Contract contract(&web3, "");
   contract.SetPrivateKey(PRIVATE_KEY);
   unsigned long long gasPriceVal = 100000000000ULL;
-  uint32_t           gasLimitVal = 600000;
+  uint32_t           gasLimitVal = 25720;
   string             destination = contractAddress;
   uint256_t          weiValue    = Util::ConvertToWei(0, 18);
 
