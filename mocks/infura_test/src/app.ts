@@ -62,11 +62,13 @@ async function main() {
     to: contractAddress,
     value: web3.utils.numberToHex(0),
     data: encodedFunctionCall,
-    gas: web3.utils.numberToHex(400000),
     nonce: await web3.eth.getTransactionCount(signer.address),
     maxPriorityFeePerGas: web3.utils.toHex(web3.utils.toWei("2", "gwei")),
     chainId: 3,
   };
+
+  const gas = await web3.eth.estimateGas(txParams);
+  txParams.gas = gas;
 
   const signedTx = await web3.eth.accounts.signTransaction(
     txParams,
