@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: config-server
+  cloud:
+    config:
+      server:
+        git:
+          default-label: master
+          uri: https://github.com/andreiczc/spring-configs2.git
+          username: andreiczc
+
+server:
+  port: 8800
