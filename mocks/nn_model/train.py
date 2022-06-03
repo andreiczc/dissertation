@@ -19,7 +19,7 @@ train_data, test_data = model_selection.train_test_split(in_data, test_size=0.2,
 print('Samples: {}'.format(train_data.shape[0]))
 print('Features: {}'.format(train_data.shape[1]))
 
-train_data = np.reshape(train_data, (train_data.shape[0], train_data.shape[1], 1))  # samples, time steps, features
+train_data = np.reshape(train_data, (train_data.shape[0], train_data.shape[1], 1))
 history = model.fit(train_data, train_data, epochs=300, verbose=0, validation_split=0.1)
 
 print('History: ', history.history)
