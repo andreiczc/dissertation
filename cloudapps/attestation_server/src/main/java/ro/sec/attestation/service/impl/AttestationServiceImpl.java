@@ -5,6 +5,7 @@ import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -39,10 +40,12 @@ public class AttestationServiceImpl implements AttestationService {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String AUTHORIZATION_PATTERN = "Bearer %s";
-    private static final String ENDPOINT = "http://188.27.95.91:8080/iot/upsert";
+    private static final String ENDPOINT = "/iot/upsert";
     private static final Logger log = LoggerFactory.getLogger(AttestationServiceImpl.class);
     private static final int TEST_BYTES_LENGTH = 16;
 
+    @Value("${gw.uri}")
+    private String GW_URL;
     private final Map<String, SecretKey> secretStore;
     private final SecureStore pskStore;
     private final Certificate certificate;
@@ -176,7 +179,7 @@ public class AttestationServiceImpl implements AttestationService {
         headers.set(AUTHORIZATION_HEADER, String.format(AUTHORIZATION_PATTERN, bearerToken));
         var entity = new HttpEntity<>(new MachineIdentifierRequestDto(payload), headers);
         var response = restTemplate
-                .exchange(ENDPOINT,
+                .exchange(GW_URL + ENDPOINT,
                         HttpMethod.POST,
                         entity,
                         MachineIdentifierResponseDto.class);

@@ -13,3 +13,6 @@ auth0:
 vault:
   uri: https://127.0.0.1:8200/
   token: ${WRAPPING_TOKEN}
+
+gw:
+  uri: http://127.0.0.1:8080
