@@ -2,6 +2,6 @@
 mvn -f registry/pom.xml package -DskipTests
 mvn -f gateway/pom.xml package -DskipTests
 mvn -f dbapp/pom.xml package -DskipTests
-docker build -t registry_andrei ./registry
-docker build -t gateway_andrei ./gateway
-docker build -t dbapp_andrei ./dbapp
+docker build -t registry ./registry
+docker build -t gateway ./gateway
+docker build -t dbapp ./dbapp
