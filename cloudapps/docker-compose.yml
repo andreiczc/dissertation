@@ -4,8 +4,6 @@ services:
     image: openzipkin/zipkin
     networks:
       - iot-net
-    ports:
-      - "9411:9411"
   mysql:
     image: mysql
     networks:

@@ -20,7 +20,7 @@ static const std::map<int, std::vector<int>> OBJECT_IDS{
 };
 static constexpr auto *TAG = "ATTESTATION";
 static const String    ATTESTATION_SERVER =
-    "http://130.162.253.10:8082/attestation/";
+    "http://193.122.11.148:8082/attestation/";
 static const String DEVICE_CERT_PATH         = "/device.crt";
 static const String DEVICE_KEY_PATH          = "/device.key";
 static const String CLIENT_HELLO_ENDPOINT    = "clientHello";

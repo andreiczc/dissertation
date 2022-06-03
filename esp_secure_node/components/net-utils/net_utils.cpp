@@ -36,7 +36,7 @@ struct SensorSetting
 
 // CONSTANTS
 static constexpr auto *TAG         = "NET";
-static constexpr auto *MQTT_SERVER = "mqtts://130.162.253.10:8883";
+static constexpr auto *MQTT_SERVER = "mqtts://193.122.11.148:8883";
 static constexpr auto  OBJECT_ID   = 1001;
 
 static auto                       instanceId = 0;
