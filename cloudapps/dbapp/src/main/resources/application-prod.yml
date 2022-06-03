@@ -33,5 +33,5 @@ eureka:
       enabled: true
 
 vault:
-  uri: https://130.162.253.10:8200/
-  token: ${WRAPPING_TOKEN}
+  uri: https://193.122.11.148:8200/
+  token: mock_token
