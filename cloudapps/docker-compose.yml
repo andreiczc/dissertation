@@ -12,10 +12,16 @@ services:
       - MYSQL_ROOT_PASSWORD=root
     volumes:
       - ./scripts:/docker-entrypoint-initdb.d
+  config-server:
+    image: config-server
+    networks:
+      - iot-net
   registry:
     image: registry
     networks:
       - iot-net
+    depends_on:
+      - config-server
   dbapp:
     image: dbapp
     networks:
@@ -23,6 +29,7 @@ services:
     depends_on:
       - registry
       - mysql
+      - config-server
     environment:
       - WRAPPING_TOKEN=hvs.CAESIMrexEUDg6_P7UmFlpKMKhp_nyX0udJWwYkUF7jWINhNGh4KHGh2cy5uaTFNYjd5R2FGMllPcllBVkxxZHdCSVc
   gateway:
@@ -34,6 +41,7 @@ services:
       - registry
       - zipkin
       - dbapp
+      - config-server
     ports:
       - "8080:8080"
 networks:
