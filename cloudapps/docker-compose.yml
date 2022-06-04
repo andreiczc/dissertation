@@ -16,6 +16,10 @@ services:
     image: config-server
     networks:
       - iot-net
+  mqtt-client:
+    image: mqtt-client
+    networks:
+      - iot-net
   registry:
     image: registry
     networks:

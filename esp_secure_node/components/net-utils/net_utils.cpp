@@ -44,10 +44,10 @@ static std::unique_ptr<uint8_t[]> MQTT_PSK_KEY(nullptr);
 static MlPredictor                predictor(ml::model::modelBytes);
 
 static const std::map<SensorType, int> resourceMap{
-    {SensorType::TEMPERATURE, 5001},
-    {SensorType::HUMIDITY, 5002},
-    {SensorType::GAS, 5003},
-    {SensorType::VIBRATION, 5004}};
+    {SensorType::TEMPERATURE, 2001},
+    {SensorType::HUMIDITY, 2002},
+    {SensorType::GAS, 2003},
+    {SensorType::VIBRATION, 2004}};
 static const std::vector<SensorType> capabilities{
     SensorType::TEMPERATURE, SensorType::HUMIDITY, SensorType::GAS,
     SensorType::VIBRATION};

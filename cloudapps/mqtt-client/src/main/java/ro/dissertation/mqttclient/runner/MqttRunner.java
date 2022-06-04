@@ -10,7 +10,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import ro.dissertation.mqttclient.model.IpsoObject;
-import ro.dissertation.mqttclient.service.RecordService;
+import ro.dissertation.mqttclient.service.api.RecordService;
+
+import java.util.Date;
 
 @Component
 public class MqttRunner implements CommandLineRunner {
@@ -46,6 +48,13 @@ public class MqttRunner implements CommandLineRunner {
                 var payload = objectMapper.readValue(payloadBytes, IpsoObject.class);
                 log.info("Received at timestamp: {}", payload.getTimestamp());
                 log.info("Received value: {}", payload.getValues().get(0).getValue());
+
+                var timestamp = new Date(payload.getTimestamp());
+                for(var value : payload.getValues()) {
+                    log.info("Saving record for resource {}", value.getResourceId());
+                    var saved = recordService.persistRecord(value, timestamp);
+                    log.info("ID of saved item: {}", saved.getId());
+                }
             }
 
             @Override
