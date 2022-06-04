@@ -8,7 +8,7 @@ spring:
 
 mqtt:
   broker:
-    uri: ssl://130.162.253.10:8884
+    uri: ssl://193.122.11.148:8884
 
 auth0:
   issuer: "https://dissertationuaa.eu.auth0.com/"
@@ -17,5 +17,5 @@ auth0:
   grant-type: client_credentials
 
 vault:
-  uri: https://130.162.253.10:8200/
+  uri: https://193.122.11.148:8200/
   token: ${WRAPPING_TOKEN}
