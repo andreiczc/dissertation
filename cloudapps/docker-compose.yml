@@ -21,7 +21,7 @@ services:
     networks:
       - iot-net
     environment:
-      - WRAPPING_TOKEN=hvs.CAESIDzg57z9GAmd1mQr4yuP0o4lJfJVj3gO9ZgqdjB2itAkGh4KHGh2cy5wNjNvelJkSU83RzJFa1AyTXZkYTl4aWE
+      - WRAPPING_TOKEN=mock
   registry:
     image: registry
     networks:
@@ -37,7 +37,7 @@ services:
       - mysql
       - config-server
     environment:
-      - WRAPPING_TOKEN=hvs.CAESIMrexEUDg6_P7UmFlpKMKhp_nyX0udJWwYkUF7jWINhNGh4KHGh2cy5uaTFNYjd5R2FGMllPcllBVkxxZHdCSVc
+      - WRAPPING_TOKEN=mock
   gateway:
     image: gateway
     restart: unless-stopped
