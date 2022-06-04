@@ -20,6 +20,8 @@ services:
     image: mqtt-client
     networks:
       - iot-net
+    environment:
+      - WRAPPING_TOKEN=hvs.CAESIDzg57z9GAmd1mQr4yuP0o4lJfJVj3gO9ZgqdjB2itAkGh4KHGh2cy5wNjNvelJkSU83RzJFa1AyTXZkYTl4aWE
   registry:
     image: registry
     networks:
