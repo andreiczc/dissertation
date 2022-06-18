@@ -16,7 +16,7 @@
 
 9. improve the attestation process by persisting the key to a file in the specified format
 
-10. create the 2 services
+10. create the 2 services -> done
 
 11. use real sensors
 
@@ -25,3 +25,7 @@ OPTIONAL:
 1. check memory allocation
 
 2. code cleanup
+
+LEFT: 
+- Add NTP server call
+- Issue request to OLTP server to update IoT Node
