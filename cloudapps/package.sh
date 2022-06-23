@@ -8,4 +8,4 @@ docker build -t config-server ./config-server
 docker build -t registry ./registry
 docker build -t gateway ./gateway
 docker build -t dbapp ./dbapp
-docker mqtt-client -t dbapp ./dbapp
+docker build -t mqtt-client ./mqtt-client
