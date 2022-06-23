@@ -42,6 +42,7 @@ static constexpr auto  OBJECT_ID   = 1001;
 static auto                       instanceId = 0;
 static std::unique_ptr<uint8_t[]> MQTT_PSK_KEY(nullptr);
 static MlPredictor                predictor(ml::model::modelBytes);
+static SensorUtils                sensorUtils;
 
 static const std::map<SensorType, int> resourceMap{
     {SensorType::TEMPERATURE, 2001},
@@ -267,7 +268,7 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
     return;
   }
 
-  const auto sensorValue = SensorUtils::querySensor(capability);
+  const auto sensorValue = sensorUtils.querySensor(capability);
 
   if (settings.ml)
   {
@@ -379,7 +380,7 @@ static void loadSettingsFromFlash()
     strcpy(setting.blockchain, blockchain);
     setting.ml = ml;
 
-    persistLastValues(name, SensorUtils::querySensor(capability));
+    persistLastValues(name, sensorUtils.querySensor(capability));
   }
 }
 

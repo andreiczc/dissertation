@@ -1,25 +1,14 @@
 #include "sensor_utils.h"
 
-#include "esp_random.h"
+static constexpr auto VIBRATION_PIN = 32;
+static constexpr auto DHT_PIN       = 33;
+static constexpr auto DHT_TYPE      = DHT11;
+static constexpr auto GAS_PIN       = 35;
 
-float getTemperature()
+SensorUtils::SensorUtils()
+    : dht(DHT_PIN, DHT_TYPE), vibrationSensor(VIBRATION_PIN), gasSensor(GAS_PIN)
 {
-  return 25.0 + (esp_random() % 120 * 0.01);
-}
-
-int getHumidity()
-{
-  return esp_random() % 99;
-}
-
-int getVibrations()
-{
-  return esp_random() % 1;
-}
-
-int getGases()
-{
-  return esp_random() % 1;
+  dht.begin();
 }
 
 float SensorUtils::querySensor(SensorType type)
@@ -27,13 +16,23 @@ float SensorUtils::querySensor(SensorType type)
   switch (type)
   {
   case SensorType::TEMPERATURE:
-    return getTemperature();
+    if (!dht.read())
+    {
+      return 0;
+    }
+
+    return dht.readTemperature();
   case SensorType::HUMIDITY:
-    return getHumidity();
+    if (!dht.read())
+    {
+      return 0;
+    }
+
+    return dht.readHumidity();
   case SensorType::GAS:
-    return getGases();
+    return gasSensor.readValue();
   case SensorType::VIBRATION:
-    return getVibrations();
+    return vibrationSensor.vibrationPresent();
   default:
     return 0;
   }
