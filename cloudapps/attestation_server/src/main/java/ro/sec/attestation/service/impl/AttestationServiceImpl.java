@@ -170,8 +170,7 @@ public class AttestationServiceImpl implements AttestationService {
         var mappedObject = new ObjectMapper().readValue(decryptedInfo, MachineIdentifier.class);
         log.info("Received value: {}", mappedObject.toString());
 
-        // return issueRequest(mappedObject);
-        return null;
+        return issueRequest(mappedObject);
     }
 
     private MachineIdentifierResponseDto issueRequest(MachineIdentifier payload) {
