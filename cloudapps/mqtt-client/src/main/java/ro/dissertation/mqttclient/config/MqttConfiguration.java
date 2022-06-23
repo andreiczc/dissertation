@@ -42,6 +42,7 @@ public class MqttConfiguration {
         var options = new MqttConnectOptions();
         options.setKeepAliveInterval(60);
         options.setConnectionTimeout(60);
+        options.setAutomaticReconnect(true);
         options.setMqttVersion(MqttConnectOptions.MQTT_VERSION_3_1);
         options.setSocketFactory(getSocketFactory());
 

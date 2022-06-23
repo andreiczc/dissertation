@@ -18,8 +18,7 @@ services:
       - iot-net
   mqtt-client:
     image: mqtt-client
-    networks:
-      - iot-net
+    network_mode: host
     environment:
       - WRAPPING_TOKEN=mock
   registry:
