@@ -11,4 +11,4 @@ ADD target/registry-${VERSION}-SNAPSHOT.jar .
 
 EXPOSE 8761
 
-ENTRYPOINT ["java", "-jar", "/usr/app/registry-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["/usr/app/start.sh"]

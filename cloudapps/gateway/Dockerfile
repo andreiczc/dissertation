@@ -15,8 +15,8 @@ RUN apt update
 RUN apt install -y curl
 RUN curl https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh > wait.sh
 RUN chmod +x wait.sh
-RUN chmod +X start.sh
+RUN chmod +x start.sh
 
 EXPOSE 8080
 
-ENTRYPOINT ["/usr/app/wait.sh","registry:8761","--timeout=0","--strict", "--", "java", "-jar", "/usr/app/gateway-0.0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["/usr/app/start.sh"]
