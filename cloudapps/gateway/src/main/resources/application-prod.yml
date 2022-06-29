@@ -2,4 +2,4 @@ spring:
   application:
     name: gateway
   config:
-    import: configserver:https://configserver:8800
+    import: configserver:https://config-server:8800
