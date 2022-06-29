@@ -40,8 +40,8 @@ static void startWifiSta(const String &ssid, const String &pass)
   }
 
   wifi_config_t wifiConfig{};
-  strcpy((char *)wifiConfig.sta.ssid, "WiFi-2.4");
-  strcpy((char *)wifiConfig.sta.password, "180898Delia!");
+  strcpy((char *)wifiConfig.sta.ssid, ssid.c_str());
+  strcpy((char *)wifiConfig.sta.password, pass.c_str());
 
   const wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
   ESP_ERROR_CHECK(esp_wifi_init(&cfg));

@@ -37,13 +37,17 @@ struct SensorSetting
 // CONSTANTS
 static constexpr auto *TAG         = "NET";
 static constexpr auto *MQTT_SERVER = "mqtts://193.122.11.148:8883";
-static constexpr auto  OBJECT_ID   = 1001;
 
 static auto                       instanceId = 0;
 static std::unique_ptr<uint8_t[]> MQTT_PSK_KEY(nullptr);
 static MlPredictor                predictor(ml::model::modelBytes);
 static SensorUtils                sensorUtils;
 
+static const std::map<SensorType, int> objectMap{
+    {SensorType::TEMPERATURE, 1001},
+    {SensorType::HUMIDITY, 1002},
+    {SensorType::GAS, 1003},
+    {SensorType::VIBRATION, 1004}};
 static const std::map<SensorType, int> resourceMap{
     {SensorType::TEMPERATURE, 2001},
     {SensorType::HUMIDITY, 2002},
@@ -58,10 +62,10 @@ static const std::map<SensorType, String> capabilityName{
     {SensorType::GAS, "gas"},
     {SensorType::VIBRATION, "vibration"}};
 static std::map<String, SensorSetting> capabilitiesSettings{
-    {"temp", SensorSetting{true, "", ""}},
-    {"humidity", SensorSetting{true, "", ""}},
-    {"gas", SensorSetting{true, "", ""}},
-    {"vibration", SensorSetting{true, "", ""}}};
+    {"temp", SensorSetting{true, "", false}},
+    {"humidity", SensorSetting{true, "", false}},
+    {"gas", SensorSetting{true, "", false}},
+    {"vibration", SensorSetting{true, "", false}}};
 static std::map<String, float *> lastSensorValues{
     {"temp", new float[NO_LAST_VALUES]{0, 0, 0, 0}},
     {"humidity", new float[NO_LAST_VALUES]{0, 0, 0, 0}},
@@ -301,16 +305,18 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
   ESP_LOGI(TAG, "Data for %s is good. Publishing...", name.c_str());
 
   ipso::SmartObject smartObj;
-  smartObj.addValue(ipso::SmartObjectValue(
-      OBJECT_ID, instanceId, resourceMap.at(capability), sensorValue));
+  const auto        objectId   = objectMap.at(capability);
+  const auto        resourceId = resourceMap.at(capability);
+  smartObj.addValue(
+      ipso::SmartObjectValue(objectId, instanceId, resourceId, sensorValue));
   size_t     payloadLength = 0;
   const auto stringValue   = smartObj.cbor(payloadLength);
 
   char topic[64] = "";
-  sprintf(topic, "%d/%d/%d", OBJECT_ID, instanceId, resourceMap.at(capability));
+  sprintf(topic, "%d/%d/%d", objectId, instanceId, resourceId);
 
   const auto returnCode = esp_mqtt_client_publish(
-      client, topic, (char *)stringValue.get(), payloadLength, 0, 0);
+      client, topic, (char *)stringValue.get(), payloadLength, 1, 1);
   ESP_LOGI(TAG, "Message on topic %s has mid: %d", topic, returnCode);
 
   if (strlen(settings.blockchain))

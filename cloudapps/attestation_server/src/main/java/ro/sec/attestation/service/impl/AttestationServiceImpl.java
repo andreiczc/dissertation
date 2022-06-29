@@ -14,15 +14,11 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import ro.sec.attestation.Application;
-import ro.sec.attestation.model.MachineIdentifier;
 import ro.sec.attestation.repo.SecureStore;
 import ro.sec.attestation.service.api.AttestationService;
 import ro.sec.attestation.service.exception.BadSignatureException;
 import ro.sec.attestation.service.exception.BadTestBytesException;
-import ro.sec.attestation.web.dto.ClientPayload;
-import ro.sec.attestation.web.dto.MachineIdentifierRequestDto;
-import ro.sec.attestation.web.dto.MachineIdentifierResponseDto;
-import ro.sec.attestation.web.dto.ServerPayload;
+import ro.sec.attestation.web.dto.*;
 import ro.sec.crypto.CryptoUtils;
 
 import javax.crypto.SecretKey;
@@ -32,8 +28,8 @@ import java.security.cert.CertificateFactory;
 import java.security.interfaces.ECPublicKey;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class AttestationServiceImpl implements AttestationService {
@@ -67,9 +63,9 @@ public class AttestationServiceImpl implements AttestationService {
             this.privateKey = CryptoUtils.readPrivateKey(privateKeyBytes);
         }
 
-        this.certificateMap = new HashMap<>();
-        this.testBytesMap = new HashMap<>();
-        this.secretStore = new HashMap<>();
+        this.certificateMap = new ConcurrentHashMap<>();
+        this.testBytesMap = new ConcurrentHashMap<>();
+        this.secretStore = new ConcurrentHashMap<>();
         this.pskStore = pskStore;
         this.bearerToken = bearerToken;
     }

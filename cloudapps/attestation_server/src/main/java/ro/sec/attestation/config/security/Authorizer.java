@@ -7,10 +7,10 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestTemplate;
-import ro.sec.attestation.model.infra.AuthRequest;
-import ro.sec.attestation.model.infra.AuthResponse;
-import ro.sec.attestation.model.infra.VaultProperties;
-import ro.sec.attestation.model.infra.VaultResponse;
+import ro.sec.attestation.web.dto.AuthRequest;
+import ro.sec.attestation.web.dto.AuthResponse;
+import ro.sec.attestation.web.dto.VaultProperties;
+import ro.sec.attestation.web.dto.VaultResponse;
 
 @Configuration
 public class Authorizer {

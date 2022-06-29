@@ -1,4 +1,4 @@
-package ro.sec.attestation.model.infra;
+package ro.sec.attestation.web.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

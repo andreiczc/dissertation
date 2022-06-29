@@ -1,4 +1,4 @@
-package ro.sec.attestation.model;
+package ro.sec.attestation.web.dto;
 
 import lombok.Data;
 

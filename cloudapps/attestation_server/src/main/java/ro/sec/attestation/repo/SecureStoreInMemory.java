@@ -36,7 +36,9 @@ public class SecureStoreInMemory implements SecureStore {
     public void store(String key, SecretKey value) {
         if (key == null || value == null) {
             throw new RuntimeException(
-                    String.format("One of the values was null! key: %b, value: %b", key == null, value == null)
+                    String.format("One of the values was null! key: %s, value: %s",
+                            key == null ? "Null" : "Not Null",
+                            value == null ? "Null" : "Not Null")
             );
         }
 
@@ -50,7 +52,6 @@ public class SecureStoreInMemory implements SecureStore {
                 restartMqtt();
             } catch (IOException e) {
                 log.error("Couldn't write to file!");
-                ;
             }
         });
     }
