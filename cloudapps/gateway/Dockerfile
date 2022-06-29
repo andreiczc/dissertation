@@ -19,4 +19,4 @@ RUN chmod +X start.sh
 
 EXPOSE 8080
 
-ENTRYPOINT ["/usr/app/start.sh"]
+ENTRYPOINT ["/usr/app/wait.sh","registry:8761","--timeout=0","--strict", "--", "java", "-jar", "/usr/app/gateway-0.0.1-SNAPSHOT.jar"]
