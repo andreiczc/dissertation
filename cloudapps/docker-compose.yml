@@ -21,7 +21,7 @@ services:
     image: mqtt-client
     network_mode: host
     environment:
-      - WRAPPING_TOKEN=mock
+      - WRAPPING_TOKEN=hvs.CAESIC2vBq6j7vIGqU2Vd_H63PaEkQR1C3y522AP-yfup09kGh4KHGh2cy5IT0c3eWg2SmNEOE9DTmxhQ0FuTU1HTzI
   registry:
     image: registry
     networks:
@@ -36,8 +36,9 @@ services:
       - registry
       - mysql
       - config-server
+      - zipkin
     environment:
-      - WRAPPING_TOKEN=mock
+      - WRAPPING_TOKEN=hvs.CAESIAHAE2xhqGvXix17MHdepwGtcAAUcXHlGIMW0e3FLP22Gh4KHGh2cy5NemJCZTRNZEJHb2lQU2hvVEIyRUNqRWI
   gateway:
     image: gateway
     restart: unless-stopped
