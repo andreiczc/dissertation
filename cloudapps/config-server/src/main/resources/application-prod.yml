@@ -6,8 +6,14 @@ spring:
       server:
         git:
           default-label: master
-          uri: https://github.com/andreiczc/spring-configs2.git
+          uri: https://github.com/andreiczc/dissertation_configs.git
           username: andreiczc
 
 server:
   port: 8800
+  ssl:
+    enabled: true
+    key-alias: configserver
+    key-store-password: pass
+    key-store: classpath:server.p12
+    key-store-type: PKCS12
