@@ -8,6 +8,10 @@ ARG VERSION=0.0.1
 RUN mkdir -p /usr/app
 WORKDIR /usr/app
 ADD target/registry-${VERSION}-SNAPSHOT.jar .
+ADD ca.crt .
+ADD start.sh .
+
+RUN chmod +x start.sh
 
 EXPOSE 8761
 
