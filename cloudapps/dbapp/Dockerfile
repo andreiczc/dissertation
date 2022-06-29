@@ -19,4 +19,4 @@ RUN chmod +x start.sh
 
 EXPOSE 8081
 
-ENTRYPOINT ["/usr/app/wait.sh","mysql:3306","--timeout=0","--strict", "--", "/usr/app/start.sh"]
+ENTRYPOINT ["/usr/app/start.sh"]

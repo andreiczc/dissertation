@@ -7,7 +7,6 @@ spring:
         git:
           default-label: master
           uri: https://github.com/andreiczc/dissertation_configs.git
-          username: andreiczc
 
 server:
   port: 8800

@@ -4,6 +4,8 @@ services:
     image: openzipkin/zipkin
     networks:
       - iot-net
+    ports:
+      - "9411:9411"
   mysql:
     image: arm64v8/mysql:oracle
     networks:
@@ -13,7 +15,7 @@ services:
     volumes:
       - ./scripts:/docker-entrypoint-initdb.d
       - dbvol:/var/lib/mysql
-  config-server:
+  configserver:
     image: config-server
     networks:
       - iot-net
@@ -21,7 +23,7 @@ services:
     image: mqtt-client
     network_mode: host
     environment:
-      - WRAPPING_TOKEN=hvs.CAESIC2vBq6j7vIGqU2Vd_H63PaEkQR1C3y522AP-yfup09kGh4KHGh2cy5IT0c3eWg2SmNEOE9DTmxhQ0FuTU1HTzI
+      - WRAPPING_TOKEN=hvs.CAESIFLVJMRHHIutuJsxzS9ccgFfs3svJs1B7pp-m-suN1bTGh4KHGh2cy5nek54N0c4TGlCbmdOQ3Zaa1NoNnpOMzI
   registry:
     image: registry
     networks:
@@ -38,7 +40,7 @@ services:
       - config-server
       - zipkin
     environment:
-      - WRAPPING_TOKEN=hvs.CAESIAHAE2xhqGvXix17MHdepwGtcAAUcXHlGIMW0e3FLP22Gh4KHGh2cy5NemJCZTRNZEJHb2lQU2hvVEIyRUNqRWI
+      - WRAPPING_TOKEN=hvs.CAESICUgBWyxi-iC92RDKEVoNGJYjU0aLMnZU6HF0EQjdGEcGh4KHGh2cy5RakFmU3BieWt5eUxOSG14eVJBSGZESlA
   gateway:
     image: gateway
     restart: unless-stopped
