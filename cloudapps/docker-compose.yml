@@ -5,7 +5,7 @@ services:
     networks:
       - iot-net
   mysql:
-    image: mysql
+    image: arm64v8/mysql:oracle
     networks:
       - iot-net
     environment:
