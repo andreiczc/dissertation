@@ -2,6 +2,7 @@
 
 #include <cbor.h>
 #include <esp_log.h>
+#include <time.h>
 
 using namespace ipso;
 
@@ -31,6 +32,17 @@ static void encodeValue(CborEncoder *const      parentEncoder,
   cbor_encoder_close_container(parentEncoder, &innerEncoder);
 }
 
+static unsigned long getCurrentTime()
+{
+  tm timeInfo{};
+  getLocalTime(&timeInfo);
+
+  time_t now{};
+  time(&now);
+
+  return now;
+}
+
 std::unique_ptr<uint8_t[]> SmartObject::cbor(size_t &size)
 {
   CborEncoder                parentEncoder;
@@ -42,7 +54,7 @@ std::unique_ptr<uint8_t[]> SmartObject::cbor(size_t &size)
   cbor_encoder_create_map(&parentEncoder, &mapEncoder, 2); // timestamp + values
 
   cbor_encode_text_stringz(&mapEncoder, "timestamp");
-  cbor_encode_int(&mapEncoder, 1); // TODO add time lib
+  cbor_encode_uint(&mapEncoder, getCurrentTime());
 
   cbor_encode_text_stringz(&mapEncoder, "values");
   cbor_encoder_create_array(&mapEncoder, &arrayEncoder, this->values.size());
@@ -57,7 +69,7 @@ std::unique_ptr<uint8_t[]> SmartObject::cbor(size_t &size)
 
   size = cbor_encoder_get_buffer_size(&parentEncoder, buffer.get());
 
-  ESP_LOG_BUFFER_HEX("CBOR", buffer.get(), size);
+  // ESP_LOG_BUFFER_HEX("CBOR", buffer.get(), size);
 
   return std::move(buffer);
 }

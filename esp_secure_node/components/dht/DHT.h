@@ -1,109 +1,101 @@
-/*!
- *  @file DHT.h
+/*
+ * Copyright (c) 2016 Jonathan Hartsuiker <https://github.com/jsuiker>
+ * Copyright (c) 2018 Ruslan V. Uss <unclerus@gmail.com>
  *
- *  This is a library for DHT series of low cost temperature/humidity sensors.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- *  You must have Adafruit Unified Sensor Library library installed to use this
- * class.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of itscontributors
+ *    may be used to endorse or promote products derived from this software without
+ *    specific prior written permission.
  *
- *  Adafruit invests time and resources providing this open source code,
- *  please support Adafruit andopen-source hardware by purchasing products
- *  from Adafruit!
- *
- *  Written by Adafruit Industries.
- *
- *  MIT license, all text above must be included in any redistribution
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DHT_H
-#define DHT_H
-
-#include "Arduino.h"
-
-/* Uncomment to enable printing out nice debug messages. */
-//#define DHT_DEBUG
-
-#define DEBUG_PRINTER                                                          \
-  Serial /**< Define where debug output will be printed.                       \
-          */
-
-/* Setup debug printing macros. */
-#ifdef DHT_DEBUG
-#define DEBUG_PRINT(...)                                                       \
-  { DEBUG_PRINTER.print(__VA_ARGS__); }
-#define DEBUG_PRINTLN(...)                                                     \
-  { DEBUG_PRINTER.println(__VA_ARGS__); }
-#else
-#define DEBUG_PRINT(...)                                                       \
-  {} /**< Debug Print Placeholder if Debug is disabled */
-#define DEBUG_PRINTLN(...)                                                     \
-  {} /**< Debug Print Line Placeholder if Debug is disabled */
-#endif
-
-/* Define types of sensors. */
-static const uint8_t DHT11{11};  /**< DHT TYPE 11 */
-static const uint8_t DHT12{12};  /**< DHY TYPE 12 */
-static const uint8_t DHT21{21};  /**< DHT TYPE 21 */
-static const uint8_t DHT22{22};  /**< DHT TYPE 22 */
-static const uint8_t AM2301{21}; /**< AM2301 */
-
-#if defined(TARGET_NAME) && (TARGET_NAME == ARDUINO_NANO33BLE)
-#ifndef microsecondsToClockCycles
-/*!
- * As of 7 Sep 2020 the Arduino Nano 33 BLE boards do not have
- * microsecondsToClockCycles defined.
+/**
+ * @file dht.h
+ * @defgroup dht dht
+ * @{
+ *
+ * ESP-IDF driver for DHT11, AM2301 (DHT21, DHT22, AM2302, AM2321), Itead Si7021
+ *
+ * Ported from esp-open-rtos
+ *
+ * Copyright (c) 2016 Jonathan Hartsuiker <https://github.com/jsuiker>\n
+ * Copyright (c) 2018 Ruslan V. Uss <unclerus@gmail.com>\n
+ *
+ * BSD Licensed as described in the file LICENSE
+ *
+ * @note A suitable pull-up resistor should be connected to the selected GPIO line
+ *
  */
-#define microsecondsToClockCycles(a) ((a) * (SystemCoreClock / 1000000L))
-#endif
+#ifndef __DHT_H__
+#define __DHT_H__
+
+#include <driver/gpio.h>
+#include <esp_err.h>
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-/*!
- *  @brief  Class that stores state and functions for DHT
+/**
+ * Sensor type
  */
-class DHT {
-public:
-  DHT(uint8_t pin, uint8_t type, uint8_t count = 6);
-  void begin(uint8_t usec = 55);
-  float readTemperature(bool S = false, bool force = false);
-  float convertCtoF(float);
-  float convertFtoC(float);
-  float computeHeatIndex(bool isFahrenheit = true);
-  float computeHeatIndex(float temperature, float percentHumidity,
-                         bool isFahrenheit = true);
-  float readHumidity(bool force = false);
-  bool read(bool force = false);
+typedef enum
+{
+    DHT_TYPE_DHT11 = 0,   //!< DHT11
+    DHT_TYPE_AM2301,      //!< AM2301 (DHT21, DHT22, AM2302, AM2321)
+    DHT_TYPE_SI7021       //!< Itead Si7021
+} dht_sensor_type_t;
 
-private:
-  uint8_t data[5];
-  uint8_t _pin, _type;
-#ifdef __AVR
-  // Use direct GPIO access on an 8-bit AVR so keep track of the port and
-  // bitmask for the digital pin connected to the DHT.  Other platforms will use
-  // digitalRead.
-  uint8_t _bit, _port;
-#endif
-  uint32_t _lastreadtime, _maxcycles;
-  bool _lastresult;
-  uint8_t pullTime; // Time (in usec) to pull up data line before reading
-
-  uint32_t expectPulse(bool level);
-};
-
-/*!
- *  @brief  Class that defines Interrupt Lock Avaiability
+/**
+ * @brief Read integer data from sensor on specified pin
+ *
+ * Humidity and temperature are returned as integers.
+ * For example: humidity=625 is 62.5 %, temperature=244 is 24.4 degrees Celsius
+ *
+ * @param sensor_type DHT11 or DHT22
+ * @param pin GPIO pin connected to sensor OUT
+ * @param[out] humidity Humidity, percents * 10, nullable
+ * @param[out] temperature Temperature, degrees Celsius * 10, nullable
+ * @return `ESP_OK` on success
  */
-class InterruptLock {
-public:
-  InterruptLock() {
-#if !defined(ARDUINO_ARCH_NRF52)
-    noInterrupts();
-#endif
-  }
-  ~InterruptLock() {
-#if !defined(ARDUINO_ARCH_NRF52)
-    interrupts();
-#endif
-  }
-};
+esp_err_t dht_read_data(dht_sensor_type_t sensor_type, gpio_num_t pin,
+        int16_t *humidity, int16_t *temperature);
 
+/**
+ * @brief Read float data from sensor on specified pin
+ *
+ * Humidity and temperature are returned as floats.
+ *
+ * @param sensor_type DHT11 or DHT22
+ * @param pin GPIO pin connected to sensor OUT
+ * @param[out] humidity Humidity, percents, nullable
+ * @param[out] temperature Temperature, degrees Celsius, nullable
+ * @return `ESP_OK` on success
+ */
+esp_err_t dht_read_float_data(dht_sensor_type_t sensor_type, gpio_num_t pin,
+        float *humidity, float *temperature);
+
+#ifdef __cplusplus
+}
 #endif
+
+/**@}*/
+
+#endif  // __DHT_H__

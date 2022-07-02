@@ -16,6 +16,7 @@
 #include "sensor_utils.h"
 #include "smart_obj.h"
 #include "spiffs_utils.h"
+#include "time.h"
 #include "web3_client.h"
 #include <HTTPClient.h>
 #include <SPIFFS.h>
@@ -35,13 +36,15 @@ struct SensorSetting
 // TODO add certificate checks in esp and server
 
 // CONSTANTS
-static constexpr auto *TAG         = "NET";
-static constexpr auto *MQTT_SERVER = "mqtts://193.122.11.148:8883";
+static constexpr auto *TAG              = "NET";
+static constexpr auto *MQTT_SERVER      = "mqtts://193.122.11.148:8883";
+static constexpr auto *NTP_SERVER       = "pool.ntp.org";
+static constexpr auto  GMT_OFFSET       = 0;
+static constexpr auto  DAY_LIGHT_OFFSET = 3600;
 
 static auto                       instanceId = 0;
 static std::unique_ptr<uint8_t[]> MQTT_PSK_KEY(nullptr);
 static MlPredictor                predictor(ml::model::modelBytes);
-static SensorUtils                sensorUtils;
 
 static const std::map<SensorType, int> objectMap{
     {SensorType::TEMPERATURE, 1001},
@@ -213,6 +216,10 @@ esp_mqtt_client_handle_t NetUtils::initMqttConnection()
 {
   ESP_LOGI(TAG, "Initializing mqtt connection...");
 
+  ESP_LOGI(TAG, "Getting updated time");
+  configTime(GMT_OFFSET, DAY_LIGHT_OFFSET, NTP_SERVER);
+  ESP_LOGI(TAG, "Updated time");
+
   static const auto    *hint = "node1";
   static psk_hint_key_t pskConf{MQTT_PSK_KEY.get(), KEY_SIZE, hint};
 
@@ -272,7 +279,8 @@ static void publishCapability(esp_mqtt_client_handle_t &client,
     return;
   }
 
-  const auto sensorValue = sensorUtils.querySensor(capability);
+  auto       sensorUtils = SensorUtils::getInstance();
+  const auto sensorValue = sensorUtils->querySensor(capability);
 
   if (settings.ml)
   {
@@ -366,6 +374,7 @@ static void loadSettingsFromFlash()
 
   const auto *root = cJSON_Parse((char *)settings.c_str());
 
+  auto sensorUtils = SensorUtils::getInstance();
   for (auto capability : capabilities)
   {
     const auto name = capabilityName.at(capability);
@@ -386,7 +395,7 @@ static void loadSettingsFromFlash()
     strcpy(setting.blockchain, blockchain);
     setting.ml = ml;
 
-    persistLastValues(name, sensorUtils.querySensor(capability));
+    persistLastValues(name, sensorUtils->querySensor(capability));
   }
 }
 

@@ -276,7 +276,6 @@ std::unique_ptr<uint8_t[]> signEcdsa(uint8_t *message, size_t messageLength,
 
   auto digest = computeSha384(message, messageLength);
 
-  // TODO use from keypair... check docs
   std::unique_ptr<uint8_t[]> result(new uint8_t[80]);
   returnCode = mbedtls_ecdsa_write_signature(
       &context, MBEDTLS_MD_SHA384, digest.get(), 64, result.get(),

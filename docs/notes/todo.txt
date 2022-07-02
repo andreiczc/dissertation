@@ -27,8 +27,8 @@ OPTIONAL:
 2. code cleanup
 
 LEFT as of submitting docs: 
-- Add NTP server call
+- Add NTP server call -> done
 - Issue request to OLTP server to update IoT Node -> done
 - Improve crypto by adding certificate checks
 - Improve the attestation process by persisting the key to a file in the specified format
-- Add HTTPS to microservices
+- Add HTTPS to microservices -> done
