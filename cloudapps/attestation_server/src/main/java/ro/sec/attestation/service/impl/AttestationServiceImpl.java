@@ -82,13 +82,11 @@ public class AttestationServiceImpl implements AttestationService {
                 certificate
         );
 
-        var x = ((ECPublicKey) this.certificate.getPublicKey()).getW().getAffineX().toByteArray();
-        x = Arrays.copyOfRange(x, 1, x.length);
-        var y = ((ECPublicKey) this.certificate.getPublicKey()).getW().getAffineY().toByteArray();
-
-        var result = Arrays.copyOf(x, x.length + y.length);
-        System.arraycopy(y, 0, result, x.length, y.length);
-        return Base64.getEncoder().encode(result);
+        try (var stream = Application.class
+                .getClassLoader()
+                .getResourceAsStream("server.crt")) {
+            return Base64.getEncoder().encode(stream.readAllBytes());
+        }
     }
 
     @Override

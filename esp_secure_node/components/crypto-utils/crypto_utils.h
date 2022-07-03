@@ -10,7 +10,7 @@ namespace crypto
 {
 bool verifyCertificate(uint8_t *otherCertificate);
 
-std::unique_ptr<uint8_t> generateRandomSequence(size_t length);
+std::unique_ptr<uint8_t[]> generateRandomSequence(size_t length);
 
 String encodeBase64(uint8_t *input, size_t inputLength, size_t &outputLength);
 

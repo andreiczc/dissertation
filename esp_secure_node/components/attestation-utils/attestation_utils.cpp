@@ -58,19 +58,19 @@ std::unique_ptr<uint8_t[]> performClientHello()
 
   ESP_LOGI(TAG, "Server responded %d", statusCode);
   size_t length = 0;
-  auto   serverPoint =
+  auto   serverCertificate =
       crypto::decodeBase64((uint8_t *)client.getString().c_str(), length);
 
   ESP_LOGI(TAG, "Server certificate has been decoded");
 
-  if (!crypto::verifyCertificate(serverPoint.get()))
+  if (!crypto::verifyCertificate(serverCertificate.get()))
   {
     ESP_LOGE(TAG,
              "Received certificate is not issued by known CA. Will restart...");
     ESP.restart();
   }
 
-  return std::move(serverPoint);
+  return std::move(serverCertificate);
 }
 
 String performKeyExchange(mbedtls_ecdh_context &ecdhParams)

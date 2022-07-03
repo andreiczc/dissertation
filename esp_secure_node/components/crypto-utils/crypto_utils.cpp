@@ -73,9 +73,9 @@ bool verifyCertificate(uint8_t *otherCertificate)
   return returnCode == 0;
 }
 
-std::unique_ptr<uint8_t> generateRandomSequence(size_t length)
+std::unique_ptr<uint8_t[]> generateRandomSequence(size_t length)
 {
-  std::unique_ptr<uint8_t> result(new uint8_t[length]);
+  std::unique_ptr<uint8_t[]> result(new uint8_t[length]);
 
   for (auto i = 0; i < length; ++i)
   {
