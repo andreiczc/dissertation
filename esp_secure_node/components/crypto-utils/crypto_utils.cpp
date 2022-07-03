@@ -43,7 +43,7 @@ static int verificationFunction(void *data, mbedtls_x509_crt *crt, int depth,
   return (0);
 }
 
-bool verifyCertificate(uint8_t *otherCertificate)
+bool verifyCertificate(uint8_t *otherCertificate, size_t otherCertificateLength)
 {
   ESP_LOGI(TAG, "Starting certificate verification...");
   const auto rootCaContentBase64 =
@@ -69,7 +69,7 @@ bool verifyCertificate(uint8_t *otherCertificate)
   mbedtls_x509_crt receivedCrt;
   mbedtls_x509_crt_init(&receivedCrt);
   returnCode = mbedtls_x509_crt_parse(&receivedCrt, otherCertificate,
-                                      strlen((char *)otherCertificate));
+                                      otherCertificateLength);
   ESP_LOGI(TAG, "mbedtls_x509_crt_parse return code: %d", returnCode);
   memset(&buffer, 0, sizeof(buffer));
   mbedtls_x509_crt_info(buffer, sizeof(buffer) - 1, "", &receivedCrt);

@@ -8,7 +8,8 @@
 
 namespace crypto
 {
-bool verifyCertificate(uint8_t *otherCertificate);
+bool verifyCertificate(uint8_t *otherCertificate,
+                       size_t   otherCertificateLength);
 
 std::unique_ptr<uint8_t[]> generateRandomSequence(size_t length);
 
