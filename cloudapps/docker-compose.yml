@@ -19,11 +19,6 @@ services:
     image: config-server
     networks:
       - iot-net
-  mqtt-client:
-    image: mqtt-client
-    network_mode: host
-    environment:
-      - WRAPPING_TOKEN=hvs.CAESIFLVJMRHHIutuJsxzS9ccgFfs3svJs1B7pp-m-suN1bTGh4KHGh2cy5nek54N0c4TGlCbmdOQ3Zaa1NoNnpOMzI
   registry:
     image: registry
     networks:
