@@ -63,6 +63,13 @@ std::unique_ptr<uint8_t[]> performClientHello()
 
   ESP_LOGI(TAG, "Server certificate has been decoded");
 
+  if (!crypto::verifyCertificate(serverPoint.get()))
+  {
+    ESP_LOGE(TAG,
+             "Received certificate is not issued by known CA. Will restart...");
+    ESP.restart();
+  }
+
   return std::move(serverPoint);
 }
 

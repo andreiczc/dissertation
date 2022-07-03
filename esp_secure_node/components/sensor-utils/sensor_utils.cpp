@@ -19,6 +19,19 @@ std::shared_ptr<SensorUtils> SensorUtils::getInstance()
   return instance;
 }
 
+static bool inBounds(float value, SensorType type)
+{
+  switch (type)
+  {
+  case SensorType::TEMPERATURE:
+    return value >= 15 && value <= 40;
+  case SensorType::HUMIDITY:
+    return value >= 10 && value <= 90;
+  default:
+    return true;
+  }
+}
+
 SensorUtils::SensorUtils() : vibrationSensor(VIBRATION_PIN), gasSensor(GAS_PIN)
 {
   float temperature = 0;
@@ -32,19 +45,6 @@ SensorUtils::SensorUtils() : vibrationSensor(VIBRATION_PIN), gasSensor(GAS_PIN)
 
   this->oldTemperature = temperature;
   this->oldHumidity    = oldHumidity;
-}
-
-static bool inBounds(float value, SensorType type)
-{
-  switch (type)
-  {
-  case SensorType::TEMPERATURE:
-    return value >= 15 && value <= 40;
-  case SensorType::HUMIDITY:
-    return value >= 10 && value <= 90;
-  default:
-    return true;
-  }
 }
 
 float SensorUtils::queryDht(SensorType type)

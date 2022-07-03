@@ -18,7 +18,60 @@
 
 namespace crypto
 {
-static auto *TAG = "CRYPTO";
+static auto *TAG         = "CRYPTO";
+static auto *CA_CRT_PATH = "ca.crt";
+
+static int verificationFunction(void *data, mbedtls_x509_crt *crt, int depth,
+                                uint32_t *flags)
+{
+  char buf[1024];
+  ((void)data);
+
+  ESP_LOGI(TAG, "\nVerify requested for (Depth %d):\n", depth);
+  mbedtls_x509_crt_info(buf, sizeof(buf) - 1, "", crt);
+  ESP_LOGI(TAG, "%s", buf);
+
+  if ((*flags) == 0)
+    ESP_LOGI(TAG, "  This certificate has no flags\n");
+  else
+  {
+    mbedtls_x509_crt_verify_info(buf, sizeof(buf), "  ! ", *flags);
+    ESP_LOGI(TAG, "%s\n", buf);
+  }
+
+  return (0);
+}
+
+bool verifyCertificate(uint8_t *otherCertificate)
+{
+  ESP_LOGI(TAG, "Starting certificate verification...");
+
+  mbedtls_x509_crt rootCa;
+  mbedtls_x509_crt_init(&rootCa);
+  mbedtls_x509_crt_parse_file(&rootCa, CA_CRT_PATH);
+
+  mbedtls_x509_crl crl;
+  mbedtls_x509_crl_init(&crl);
+  memset(&crl, 0, sizeof(mbedtls_x509_crl));
+
+  mbedtls_x509_crt receivedCrt;
+  mbedtls_x509_crt_init(&receivedCrt);
+  mbedtls_x509_crt_parse(&receivedCrt, otherCertificate,
+                         strlen((char *)otherCertificate));
+
+  uint32_t   flags;
+  const auto returnCode =
+      mbedtls_x509_crt_verify(&receivedCrt, &rootCa, &crl, nullptr, &flags,
+                              verificationFunction, nullptr);
+
+  ESP_LOGI(TAG, "Received certificate %s valid", returnCode ? "is not" : "is");
+
+  mbedtls_x509_crt_free(&rootCa);
+  mbedtls_x509_crt_free(&receivedCrt);
+  mbedtls_x509_crl_free(&crl);
+
+  return returnCode == 0;
+}
 
 std::unique_ptr<uint8_t> generateRandomSequence(size_t length)
 {
