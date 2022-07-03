@@ -84,8 +84,8 @@ public class AttestationServiceImpl implements AttestationService {
 
         try (var stream = Application.class
                 .getClassLoader()
-                .getResourceAsStream("server.crt")) {
-            return Base64.getEncoder().encode(stream.readAllBytes());
+                .getResourceAsStream("server.der")) {
+            return stream.readAllBytes();
         }
     }
 

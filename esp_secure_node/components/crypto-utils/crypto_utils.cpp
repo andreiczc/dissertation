@@ -9,6 +9,7 @@
 #include "mbedtls/entropy.h"
 #include "mbedtls/sha512.h"
 #include "mbedtls/x509.h"
+#include "spiffs_utils.h"
 #include <cstring>
 #include <functional>
 
@@ -19,7 +20,7 @@
 namespace crypto
 {
 static auto *TAG         = "CRYPTO";
-static auto *CA_CRT_PATH = "ca.crt";
+static auto *CA_CRT_PATH = "/ca.crt";
 
 static int verificationFunction(void *data, mbedtls_x509_crt *crt, int depth,
                                 uint32_t *flags)
@@ -45,10 +46,21 @@ static int verificationFunction(void *data, mbedtls_x509_crt *crt, int depth,
 bool verifyCertificate(uint8_t *otherCertificate)
 {
   ESP_LOGI(TAG, "Starting certificate verification...");
+  const auto rootCaContentBase64 =
+      SpiffsUtils::getInstance()->readText(CA_CRT_PATH);
+  size_t     rootCaContentLength = 0;
+  const auto rootCaContent =
+      decodeBase64((uint8_t *)rootCaContentBase64.c_str(), rootCaContentLength);
 
   mbedtls_x509_crt rootCa;
   mbedtls_x509_crt_init(&rootCa);
-  mbedtls_x509_crt_parse_file(&rootCa, CA_CRT_PATH);
+  auto returnCode =
+      mbedtls_x509_crt_parse(&rootCa, rootCaContent.get(), rootCaContentLength);
+  ESP_LOGI(TAG, "mbedtls_x509_crt_parse return code: %d", returnCode);
+
+  char buffer[256];
+  mbedtls_x509_crt_info(buffer, sizeof(buffer) - 1, "", &rootCa);
+  ESP_LOGI(TAG, "Root CA Info: %s", buffer);
 
   mbedtls_x509_crl crl;
   mbedtls_x509_crl_init(&crl);
@@ -56,13 +68,16 @@ bool verifyCertificate(uint8_t *otherCertificate)
 
   mbedtls_x509_crt receivedCrt;
   mbedtls_x509_crt_init(&receivedCrt);
-  mbedtls_x509_crt_parse(&receivedCrt, otherCertificate,
-                         strlen((char *)otherCertificate));
+  returnCode = mbedtls_x509_crt_parse(&receivedCrt, otherCertificate,
+                                      strlen((char *)otherCertificate));
+  ESP_LOGI(TAG, "mbedtls_x509_crt_parse return code: %d", returnCode);
+  memset(&buffer, 0, sizeof(buffer));
+  mbedtls_x509_crt_info(buffer, sizeof(buffer) - 1, "", &receivedCrt);
+  ESP_LOGI(TAG, "Other party Info: %s", buffer);
 
-  uint32_t   flags;
-  const auto returnCode =
-      mbedtls_x509_crt_verify(&receivedCrt, &rootCa, &crl, nullptr, &flags,
-                              verificationFunction, nullptr);
+  uint32_t flags;
+  returnCode = mbedtls_x509_crt_verify(&receivedCrt, &rootCa, &crl, nullptr,
+                                       &flags, verificationFunction, nullptr);
 
   ESP_LOGI(TAG, "Received certificate %s valid", returnCode ? "is not" : "is");
 
