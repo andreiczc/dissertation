@@ -33,8 +33,7 @@ bool checkExistingKey(const String &content)
 {
   /* TODO add signature check
    format:
-   key(hex) timestamp
-   signature
+   key(hex) timestamp signature(hex)
    */
 
   if (content.isEmpty())
@@ -70,7 +69,7 @@ std::unique_ptr<uint8_t[]> performClientHello()
     ESP.restart();
   }
 
-  return std::move(serverCertificate);
+  return crypto::parseCertificate(serverCertificate.get(), length);
 }
 
 String performKeyExchange(mbedtls_ecdh_context &ecdhParams)

@@ -21,4 +21,4 @@ vault:
   token: mock_token
 
 gw:
-  uri: http://193.122.11.148:8080
+  uri: https://193.122.11.148:8080

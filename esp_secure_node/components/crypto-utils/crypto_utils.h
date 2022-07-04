@@ -11,6 +11,9 @@ namespace crypto
 bool verifyCertificate(uint8_t *otherCertificate,
                        size_t   otherCertificateLength);
 
+std::unique_ptr<uint8_t[]> parseCertificate(uint8_t *certificate,
+                                            size_t   certificateLength);
+
 std::unique_ptr<uint8_t[]> generateRandomSequence(size_t length);
 
 String encodeBase64(uint8_t *input, size_t inputLength, size_t &outputLength);

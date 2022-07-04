@@ -88,6 +88,49 @@ bool verifyCertificate(uint8_t *otherCertificate, size_t otherCertificateLength)
   return returnCode == 0;
 }
 
+std::unique_ptr<uint8_t[]> parseCertificate(uint8_t *certificate,
+                                            size_t   certificateLength)
+{
+  ESP_LOGI(TAG, "Parsing certificate...");
+
+  std::unique_ptr<uint8_t[]> result(new uint8_t[KEY_SIZE * 2]);
+
+  mbedtls_x509_crt crt;
+  mbedtls_x509_crt_init(&crt);
+
+  auto returnCode =
+      mbedtls_x509_crt_parse(&crt, certificate, certificateLength);
+  ESP_LOGI(TAG, "mbedtls_x509_crt_parse return code: %d", returnCode);
+
+  auto *rawPk = &crt.pk_raw;
+  ESP_LOG_BUFFER_HEX(TAG, rawPk->p, rawPk->len);
+  ESP_LOGI(TAG, "Parsing the public key");
+
+  auto idxX = -1;
+  for (auto i = 0; i < rawPk->len; ++i)
+  {
+    if (rawPk->p[i] == 0x04)
+    {
+      idxX = i + 1;
+
+      break;
+    }
+  }
+
+  if (idxX == -1)
+  {
+    ESP_LOGE(TAG, "Error parsing the certificate... Restarting");
+    ESP.restart();
+  }
+
+  memcpy(result.get(), &rawPk->p[idxX], KEY_SIZE);
+  memcpy(result.get() + KEY_SIZE, &rawPk->p[idxX + KEY_SIZE], KEY_SIZE);
+
+  mbedtls_x509_crt_free(&crt);
+
+  return std::move(result);
+}
+
 std::unique_ptr<uint8_t[]> generateRandomSequence(size_t length)
 {
   std::unique_ptr<uint8_t[]> result(new uint8_t[length]);
