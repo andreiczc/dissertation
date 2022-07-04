@@ -46,6 +46,8 @@ public class MqttRunner implements CommandLineRunner {
                 log.debug("Payload: {}", hex);
 
                 var payload = objectMapper.readValue(payloadBytes, IpsoObject.class);
+                payload.setTimestamp(payload.getTimestamp() * 1000); // convert seconds to ms
+
                 log.info("Received at timestamp: {}", payload.getTimestamp());
                 log.info("Received value: {}", payload.getValues().get(0).getValue());
 

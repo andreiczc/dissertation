@@ -7,6 +7,6 @@ import java.util.List;
 @Data
 public class IpsoObject {
 
-    private int timestamp;
+    private long timestamp;
     private List<IpsoValue> values;
 }
