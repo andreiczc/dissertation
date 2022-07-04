@@ -33,8 +33,6 @@ struct SensorSetting
   bool ml;
 };
 
-// TODO add certificate checks in esp and server
-
 // CONSTANTS
 static constexpr auto *TAG              = "NET";
 static constexpr auto *MQTT_SERVER      = "mqtts://193.122.11.148:8883";
@@ -96,6 +94,10 @@ void NetUtils::startWifi()
   }
 
   ESP_LOGI(TAG, "Connection successful");
+
+  ESP_LOGI(TAG, "Getting updated time");
+  configTime(GMT_OFFSET, DAY_LIGHT_OFFSET, NTP_SERVER);
+  ESP_LOGI(TAG, "Updated time");
 }
 
 static void performAttestationProcess()
@@ -115,6 +117,8 @@ static void performAttestationProcess()
 
   MQTT_PSK_KEY = attestation::performClientFinish(
       publicParams, signature, test, serverPoint.get(), ecdhParams, instanceId);
+
+  cJSON_Delete(root);
 }
 
 static bool checkAttestationStatus()
@@ -127,8 +131,6 @@ static bool checkAttestationStatus()
 
 void NetUtils::attestDevice()
 {
-  // TODO add rtos task to check key each hour
-
   ESP_LOGI(TAG, "Checking attestation status");
 
   if (checkAttestationStatus())
@@ -215,10 +217,6 @@ static void registerMqttHandlers(esp_mqtt_client_handle_t client)
 esp_mqtt_client_handle_t NetUtils::initMqttConnection()
 {
   ESP_LOGI(TAG, "Initializing mqtt connection...");
-
-  ESP_LOGI(TAG, "Getting updated time");
-  configTime(GMT_OFFSET, DAY_LIGHT_OFFSET, NTP_SERVER);
-  ESP_LOGI(TAG, "Updated time");
 
   static const auto    *hint = "node1";
   static psk_hint_key_t pskConf{MQTT_PSK_KEY.get(), KEY_SIZE, hint};
@@ -372,7 +370,7 @@ static void loadSettingsFromFlash()
   const auto spiffsUtils = SpiffsUtils::getInstance();
   const auto settings    = spiffsUtils->readText("/settings.json");
 
-  const auto *root = cJSON_Parse((char *)settings.c_str());
+  auto *root = cJSON_Parse((char *)settings.c_str());
 
   auto sensorUtils = SensorUtils::getInstance();
   for (auto capability : capabilities)
@@ -397,6 +395,8 @@ static void loadSettingsFromFlash()
 
     persistLastValues(name, sensorUtils->querySensor(capability));
   }
+
+  cJSON_Delete(root);
 }
 
 static void writeSettingsToFlash()
@@ -519,6 +519,8 @@ std::unique_ptr<AsyncWebServer> NetUtils::startManagementServer()
 
           request->send(200);
           writeSettingsToFlash();
+
+          cJSON_Delete(root);
         });
   }
 

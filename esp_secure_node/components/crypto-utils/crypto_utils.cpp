@@ -43,6 +43,61 @@ static int verificationFunction(void *data, mbedtls_x509_crt *crt, int depth,
   return (0);
 }
 
+static uint8_t fromHexDigit(char digit)
+{
+  if (digit >= '0' && digit <= '9')
+  {
+    return digit - 48;
+  }
+  else if (digit >= 'A' && digit <= 'F')
+  {
+    return digit - 65 + 10;
+  }
+  else if (digit >= 'a' && digit <= 'f')
+  {
+    return digit - 97 + 10;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+static uint8_t fromHexPair(const String &content)
+{
+  const auto *string = content.c_str();
+  const auto  major  = string[1];
+  const auto  minor  = string[0];
+
+  return fromHexDigit(major) * 16 + fromHexDigit(minor);
+}
+
+std::unique_ptr<uint8_t[]> fromHex(const String &content, size_t &contentLength)
+{
+  contentLength = content.length() / 2;
+  std::unique_ptr<uint8_t[]> result(new uint8_t[contentLength]);
+
+  for (auto i = 0; i < content.length(); i += 2)
+  {
+    const auto currPair = content.substring(i, i + 2).c_str();
+    result.get()[i]     = fromHexPair(currPair);
+  }
+
+  return std::move(result);
+}
+
+String toHex(const uint8_t *content, size_t contentLength)
+{
+  std::unique_ptr<char[]> buffer(new char[contentLength * 2 + 1]);
+  for (auto i = 0; i < contentLength; ++i)
+  {
+    sprintf(&buffer.get()[i * 2], "%02x", content[i]);
+  }
+  buffer[contentLength * 2] = 0;
+
+  return String(buffer.get());
+}
+
 bool verifyCertificate(uint8_t *otherCertificate, size_t otherCertificateLength)
 {
   ESP_LOGI(TAG, "Starting certificate verification...");

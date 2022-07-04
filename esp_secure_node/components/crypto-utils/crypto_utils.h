@@ -11,6 +11,11 @@ namespace crypto
 bool verifyCertificate(uint8_t *otherCertificate,
                        size_t   otherCertificateLength);
 
+std::unique_ptr<uint8_t[]> fromHex(const String &content,
+                                   size_t       &contentLength);
+
+String toHex(const uint8_t *content, size_t contentLength);
+
 std::unique_ptr<uint8_t[]> parseCertificate(uint8_t *certificate,
                                             size_t   certificateLength);
 

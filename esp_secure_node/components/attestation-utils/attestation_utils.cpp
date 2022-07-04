@@ -18,7 +18,8 @@ static const std::map<int, std::vector<int>> OBJECT_IDS{
     {1003, {2003}},
     {1004, {2004}},
 };
-static constexpr auto *TAG = "ATTESTATION";
+static constexpr auto *TAG      = "ATTESTATION";
+static constexpr auto  UNIX_DAY = 86400;
 static const String    ATTESTATION_SERVER =
     "http://193.122.11.148:8082/attestation/";
 static const String DEVICE_CERT_PATH         = "/device.crt";
@@ -29,19 +30,96 @@ static const String CLIENT_FINISHED_ENDPOINT = "clientFinished";
 
 namespace attestation
 {
+
+static unsigned long getCurrentTime()
+{
+  tm timeInfo{};
+  getLocalTime(&timeInfo);
+
+  time_t now{};
+  time(&now);
+
+  return now;
+}
+
+static mbedtls_ecp_point deserializePoint(const uint8_t *publicPoint)
+{
+  mbedtls_ecp_point point;
+  mbedtls_ecp_point_init(&point);
+
+  mbedtls_mpi_init(&point.X);
+  mbedtls_mpi_init(&point.Y);
+  mbedtls_mpi_init(&point.Z);
+
+  mbedtls_mpi_read_binary(&point.X, publicPoint, KEY_SIZE);
+  mbedtls_mpi_read_binary(&point.Y, publicPoint + KEY_SIZE, KEY_SIZE);
+  mbedtls_mpi_lset(&point.Z, 1);
+
+  return point;
+}
+
 bool checkExistingKey(const String &content)
 {
-  /* TODO add signature check
+  /*
    format:
    key(hex) timestamp signature(hex)
    */
 
+  ESP_LOGI(TAG, "Verifying information about the stored key: %s",
+           content.c_str());
+
   if (content.isEmpty())
   {
+    ESP_LOGI(TAG, "No existing key content...");
+
     return false;
   }
 
-  return false;
+  auto contentCopy = content;
+
+  const auto keyHex       = contentCopy.substring(0, contentCopy.indexOf(" "));
+  contentCopy             = contentCopy.substring(contentCopy.indexOf(" ") + 1);
+  const auto timestamp    = contentCopy.substring(0, contentCopy.indexOf(" "));
+  const auto signatureHex = contentCopy.substring(contentCopy.indexOf(" ") + 1);
+
+  ESP_LOGI(TAG, "Last attestation date: %s", timestamp.c_str());
+  const auto time = timestamp.toInt();
+  if (getCurrentTime() - time > UNIX_DAY)
+  {
+    ESP_LOGI(TAG, "Attestation happened more than 1 day ago...");
+
+    return false;
+  }
+
+  size_t     keySize = 0;
+  const auto key     = crypto::fromHex(keyHex, keySize);
+  ESP_LOG_BUFFER_HEX(TAG, key.get(), keySize);
+
+  size_t     signatureSize = 0;
+  const auto signature     = crypto::fromHex(signatureHex, signatureSize);
+  ESP_LOG_BUFFER_HEX(TAG, signature.get(), signatureSize);
+
+  const auto               bufferSize = keySize + timestamp.length();
+  std::unique_ptr<uint8_t> buffer(new uint8_t[bufferSize]);
+  memcpy(buffer.get(), key.get(), keySize);
+  memcpy(buffer.get() + keySize, timestamp.c_str(), timestamp.length());
+
+  const auto ownCertificateBase64 =
+      SpiffsUtils::getInstance()->readText(DEVICE_CERT_PATH);
+  size_t     certificateLength = 0;
+  const auto ownCertificate    = crypto::decodeBase64(
+         (uint8_t *)ownCertificateBase64.c_str(), certificateLength);
+  const auto publicPoint =
+      crypto::parseCertificate(ownCertificate.get(), certificateLength);
+
+  mbedtls_ecp_point point = deserializePoint(publicPoint.get());
+
+  const auto signatureVerifies = crypto::verifyEcdsa(
+      buffer.get(), bufferSize, signature.get(), signatureSize, point);
+  ESP_LOGI(TAG, "Signature %s",
+           signatureVerifies ? "verifies" : "doesn't verify");
+
+  return signatureVerifies;
 }
 
 std::unique_ptr<uint8_t[]> performClientHello()
@@ -148,6 +226,20 @@ static char *constructIdentifier()
   return string;
 }
 
+static int parseResponseForInstanceId(const String &text)
+{
+  ESP_LOGI(TAG, "Parsing the server response for Instance ID");
+  auto       *root       = cJSON_Parse(text.c_str());
+  const auto *objectList = cJSON_GetObjectItem(root, "objects");
+  const auto *firstItem  = cJSON_GetArrayItem(objectList, 0);
+  const auto  instanceId =
+      cJSON_GetObjectItem(firstItem, "instanceId")->valueint;
+
+  cJSON_Delete(root);
+
+  return instanceId;
+}
+
 std::unique_ptr<uint8_t[]>
 performClientFinish(const char *publicParams, const char *signature,
                     const char *test, const uint8_t *serverPoint,
@@ -161,23 +253,8 @@ performClientFinish(const char *publicParams, const char *signature,
   const auto decodedSignature =
       crypto::decodeBase64((uint8_t *)signature, signatureLength);
 
-  mbedtls_ecp_point point;
-  mbedtls_ecp_point_init(&point);
-
-  mbedtls_mpi_init(&point.X);
-  mbedtls_mpi_init(&point.Y);
-  mbedtls_mpi_init(&point.Z);
-
-  uint8_t pt[KEY_SIZE] = "";
-  memcpy(pt, serverPoint, KEY_SIZE);
-  mbedtls_mpi_read_binary(&point.X, pt, KEY_SIZE);
-
-  memcpy(pt, serverPoint + KEY_SIZE, KEY_SIZE);
-  mbedtls_mpi_read_binary(&point.Y, pt, KEY_SIZE);
-
-  mbedtls_mpi_lset(&point.Z, 1);
-
-  auto signatureVerifies =
+  mbedtls_ecp_point point = deserializePoint(serverPoint);
+  auto              signatureVerifies =
       crypto::verifyEcdsa(decodedPublicParams.get(), paramsLength,
                           decodedSignature.get(), signatureLength, point);
 
@@ -187,6 +264,7 @@ performClientFinish(const char *publicParams, const char *signature,
     ESP.restart();
   }
 
+  uint8_t pt[KEY_SIZE] = "";
   memcpy(pt, decodedPublicParams.get() + 1, KEY_SIZE);
   mbedtls_mpi_read_binary(&point.X, pt, KEY_SIZE);
 
@@ -249,7 +327,8 @@ performClientFinish(const char *publicParams, const char *signature,
   const auto statusCode = client.POST(payloadEncoded);
   ESP_LOGI(TAG, "Server responded %d", statusCode);
 
-  instanceId = client.getString().toInt();
+  const auto responseText = client.getString();
+  instanceId              = parseResponseForInstanceId(responseText);
   ESP_LOGI(TAG, "Instance id is %d", instanceId);
 
   return std::move(generatedSecret);
