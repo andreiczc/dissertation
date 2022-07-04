@@ -15,4 +15,4 @@ vault:
   token: ${WRAPPING_TOKEN}
 
 gw:
-  uri: http://127.0.0.1:8080
+  uri: https://127.0.0.1:8080

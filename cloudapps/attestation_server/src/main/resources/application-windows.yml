@@ -11,8 +11,8 @@ auth0:
   grant-type: client_credentials
 
 vault:
-  uri: https://130.162.253.10:8200/
+  uri: https://193.122.11.148:8200/
   token: ${WRAPPING_TOKEN}
 
 gw:
-  uri: http://127.0.0.1:8080
+  uri: https://127.0.0.1:8080
