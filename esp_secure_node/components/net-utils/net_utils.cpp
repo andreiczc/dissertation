@@ -129,7 +129,7 @@ void NetUtils::attestDevice()
 
   if (attestation::checkExistingKey())
   {
-    MQTT_PSK_KEY = attestation::extractExistingKey();
+    MQTT_PSK_KEY = attestation::extractExistingInfo(instanceId);
 
     ESP_LOGI(TAG, "Extracted key:");
     ESP_LOG_BUFFER_HEX(TAG, MQTT_PSK_KEY.get(), KEY_SIZE);

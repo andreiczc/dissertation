@@ -176,7 +176,7 @@ bool checkExistingKey()
   return signatureVerifies;
 }
 
-std::unique_ptr<uint8_t[]> extractExistingKey()
+std::unique_ptr<uint8_t[]> extractExistingInfo(int &instanceId)
 {
   ESP_LOGI(TAG, "Retrieving stored key");
 
@@ -189,10 +189,13 @@ std::unique_ptr<uint8_t[]> extractExistingKey()
     ESP.restart();
   }
 
-  const auto keyHex  = content.substring(0, content.indexOf(" "));
-  size_t     keySize = 0;
+  const auto keyHex = content.substring(0, content.indexOf(" "));
+  content           = content.substring(content.indexOf(" ") + 1);
+  instanceId        = content.substring(0, content.indexOf(" ")).toInt();
 
-  return crypto::decodeBase64((uint8_t *)keyHex.c_str(), keySize);
+  size_t keySize = 0;
+
+  return crypto::fromHex(keyHex, keySize);
 }
 
 std::unique_ptr<uint8_t[]> performClientHello()

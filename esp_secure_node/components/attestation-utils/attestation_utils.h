@@ -8,7 +8,7 @@ namespace attestation
 {
 bool checkExistingKey();
 
-std::unique_ptr<uint8_t[]> extractExistingKey();
+std::unique_ptr<uint8_t[]> extractExistingInfo(int &instanceId);
 
 std::unique_ptr<uint8_t[]> performClientHello();
 
