@@ -121,20 +121,14 @@ static void performAttestationProcess()
   cJSON_Delete(root);
 }
 
-static bool checkAttestationStatus()
-{
-  auto       spiffs  = SpiffsUtils::getInstance();
-  const auto content = spiffs->readText("/secret.key");
-
-  return attestation::checkExistingKey(content);
-}
-
 void NetUtils::attestDevice()
 {
   ESP_LOGI(TAG, "Checking attestation status");
 
-  if (checkAttestationStatus())
+  if (attestation::checkExistingKey())
   {
+    MQTT_PSK_KEY = attestation::extractExistingKey();
+
     return;
   }
 

@@ -18,11 +18,13 @@ static const std::map<int, std::vector<int>> OBJECT_IDS{
     {1003, {2003}},
     {1004, {2004}},
 };
-static constexpr auto *TAG      = "ATTESTATION";
-static constexpr auto  UNIX_DAY = 86400;
+static constexpr auto *TAG             = "ATTESTATION";
+static constexpr auto *SECRET_KEY_PATH = "/secret.key";
+static constexpr auto  UNIX_DAY        = 86400;
 static const String    ATTESTATION_SERVER =
     "http://193.122.11.148:8082/attestation/";
 static const String DEVICE_CERT_PATH         = "/device.crt";
+static const String DEVICE_CERT_DER_PATH     = "/device.crt.der";
 static const String DEVICE_KEY_PATH          = "/device.key";
 static const String CLIENT_HELLO_ENDPOINT    = "clientHello";
 static const String KEY_EXCHANGE_ENDPOINT    = "keyExchange";
@@ -58,12 +60,49 @@ static mbedtls_ecp_point deserializePoint(const uint8_t *publicPoint)
   return point;
 }
 
-bool checkExistingKey(const String &content)
+static void persistKey(const uint8_t *key, size_t keyLength)
+{
+  ESP_LOGI(TAG, "Persisting attestation information");
+
+  const auto keyHex    = crypto::toHex(key, keyLength);
+  const auto timestamp = String(getCurrentTime());
+
+  const auto               bufferSize = keyHex.length() + timestamp.length();
+  std::unique_ptr<uint8_t> buffer(new uint8_t[bufferSize]);
+  memcpy(buffer.get(), keyHex.c_str(), keyHex.length());
+  memcpy(buffer.get() + keyHex.length(), timestamp.c_str(), timestamp.length());
+
+  ESP_LOG_BUFFER_HEX(TAG, buffer.get(), bufferSize);
+
+  const auto privateKeyBase64 =
+      SpiffsUtils::getInstance()->readText(DEVICE_KEY_PATH);
+  size_t     privateKeyLength = 0;
+  const auto privateKey       = crypto::decodeBase64(
+            (uint8_t *)privateKeyBase64.c_str(), privateKeyLength);
+
+  size_t     signatureLength = 0;
+  const auto signature =
+      crypto::signEcdsa(buffer.get(), bufferSize, signatureLength,
+                        privateKey.get(), privateKeyLength);
+
+  const auto signatureHex = crypto::toHex(signature.get(), signatureLength);
+
+  const auto result = keyHex + " " + timestamp + " " + signatureHex;
+
+  ESP_LOGI(TAG, "Persisting attestation info: %s", result.c_str());
+
+  SpiffsUtils::getInstance()->writeText(SECRET_KEY_PATH, result);
+}
+
+bool checkExistingKey()
 {
   /*
    format:
    key(hex) timestamp signature(hex)
    */
+
+  auto spiffs  = SpiffsUtils::getInstance();
+  auto content = spiffs->readText(SECRET_KEY_PATH);
 
   ESP_LOGI(TAG, "Verifying information about the stored key: %s",
            content.c_str());
@@ -75,37 +114,39 @@ bool checkExistingKey(const String &content)
     return false;
   }
 
-  auto contentCopy = content;
-
-  const auto keyHex       = contentCopy.substring(0, contentCopy.indexOf(" "));
-  contentCopy             = contentCopy.substring(contentCopy.indexOf(" ") + 1);
-  const auto timestamp    = contentCopy.substring(0, contentCopy.indexOf(" "));
-  const auto signatureHex = contentCopy.substring(contentCopy.indexOf(" ") + 1);
+  const auto keyHex       = content.substring(0, content.indexOf(" "));
+  content                 = content.substring(content.indexOf(" ") + 1);
+  const auto timestamp    = content.substring(0, content.indexOf(" "));
+  const auto signatureHex = content.substring(content.indexOf(" ") + 1);
 
   ESP_LOGI(TAG, "Last attestation date: %s", timestamp.c_str());
-  const auto time = timestamp.toInt();
-  if (getCurrentTime() - time > UNIX_DAY)
+  const auto time        = timestamp.toInt();
+  const auto currentTime = getCurrentTime();
+  if (currentTime - time > UNIX_DAY)
   {
-    ESP_LOGI(TAG, "Attestation happened more than 1 day ago...");
+    ESP_LOGI(TAG,
+             "Attestation happened more than 1 day ago... Current time: %ld; "
+             "Attestation time: %ld",
+             currentTime, time);
 
     return false;
   }
 
-  size_t     keySize = 0;
-  const auto key     = crypto::fromHex(keyHex, keySize);
-  ESP_LOG_BUFFER_HEX(TAG, key.get(), keySize);
-
   size_t     signatureSize = 0;
   const auto signature     = crypto::fromHex(signatureHex, signatureSize);
+  ESP_LOGI(TAG, "Deserialized signature:");
   ESP_LOG_BUFFER_HEX(TAG, signature.get(), signatureSize);
 
-  const auto               bufferSize = keySize + timestamp.length();
+  const auto               bufferSize = keyHex.length() + timestamp.length();
   std::unique_ptr<uint8_t> buffer(new uint8_t[bufferSize]);
-  memcpy(buffer.get(), key.get(), keySize);
-  memcpy(buffer.get() + keySize, timestamp.c_str(), timestamp.length());
+  memcpy(buffer.get(), keyHex.c_str(), keyHex.length());
+  memcpy(buffer.get() + keyHex.length(), timestamp.c_str(), timestamp.length());
+
+  ESP_LOGI(TAG, "Buffer to be used for signature verification:");
+  ESP_LOG_BUFFER_HEX(TAG, buffer.get(), bufferSize);
 
   const auto ownCertificateBase64 =
-      SpiffsUtils::getInstance()->readText(DEVICE_CERT_PATH);
+      SpiffsUtils::getInstance()->readText(DEVICE_CERT_DER_PATH);
   size_t     certificateLength = 0;
   const auto ownCertificate    = crypto::decodeBase64(
          (uint8_t *)ownCertificateBase64.c_str(), certificateLength);
@@ -120,6 +161,25 @@ bool checkExistingKey(const String &content)
            signatureVerifies ? "verifies" : "doesn't verify");
 
   return signatureVerifies;
+}
+
+std::unique_ptr<uint8_t[]> extractExistingKey()
+{
+  ESP_LOGI(TAG, "Retrieving stored key");
+
+  auto spiffs  = SpiffsUtils::getInstance();
+  auto content = spiffs->readText(SECRET_KEY_PATH);
+
+  if (content.isEmpty())
+  {
+    ESP_LOGI(TAG, "No existing key content...");
+    ESP.restart();
+  }
+
+  const auto keyHex  = content.substring(0, content.indexOf(" "));
+  size_t     keySize = 0;
+
+  return crypto::decodeBase64((uint8_t *)keyHex.c_str(), keySize);
 }
 
 std::unique_ptr<uint8_t[]> performClientHello()
@@ -330,6 +390,8 @@ performClientFinish(const char *publicParams, const char *signature,
   const auto responseText = client.getString();
   instanceId              = parseResponseForInstanceId(responseText);
   ESP_LOGI(TAG, "Instance id is %d", instanceId);
+
+  persistKey(generatedSecret.get(), KEY_SIZE);
 
   return std::move(generatedSecret);
 }

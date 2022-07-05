@@ -63,24 +63,25 @@ static uint8_t fromHexDigit(char digit)
   }
 }
 
-static uint8_t fromHexPair(const String &content)
+static uint8_t fromHexPair(const char *content)
 {
-  const auto *string = content.c_str();
-  const auto  major  = string[1];
-  const auto  minor  = string[0];
+  const auto major = content[0];
+  const auto minor = content[1];
 
   return fromHexDigit(major) * 16 + fromHexDigit(minor);
 }
 
 std::unique_ptr<uint8_t[]> fromHex(const String &content, size_t &contentLength)
 {
+  ESP_LOGI(TAG, "Decoding from hex: %s", content.c_str());
+
   contentLength = content.length() / 2;
   std::unique_ptr<uint8_t[]> result(new uint8_t[contentLength]);
+  const auto                *string = content.c_str();
 
   for (auto i = 0; i < content.length(); i += 2)
   {
-    const auto currPair = content.substring(i, i + 2).c_str();
-    result.get()[i]     = fromHexPair(currPair);
+    result.get()[i / 2] = fromHexPair(&string[i]);
   }
 
   return std::move(result);
@@ -388,6 +389,8 @@ generateSharedSecret(mbedtls_ecdh_context    &context,
   std::unique_ptr<uint8_t[]> buffer(new uint8_t[KEY_SIZE]);
   returnCode = mbedtls_mpi_write_binary(&context.z, buffer.get(), KEY_SIZE);
   ESP_LOGI(TAG, "mbedtls_mpi_write_binary return code: %d", returnCode);
+
+  ESP_LOGI(TAG, "Printing generated shared secret");
   ESP_LOG_BUFFER_HEX(TAG, buffer.get(), KEY_SIZE);
 
   mbedtls_entropy_free(&entropy);

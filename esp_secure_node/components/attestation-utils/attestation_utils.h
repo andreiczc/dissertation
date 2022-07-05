@@ -6,7 +6,9 @@
 
 namespace attestation
 {
-bool checkExistingKey(const String &content);
+bool checkExistingKey();
+
+std::unique_ptr<uint8_t[]> extractExistingKey();
 
 std::unique_ptr<uint8_t[]> performClientHello();
 
