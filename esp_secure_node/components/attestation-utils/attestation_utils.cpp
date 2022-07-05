@@ -60,17 +60,23 @@ static mbedtls_ecp_point deserializePoint(const uint8_t *publicPoint)
   return point;
 }
 
-static void persistKey(const uint8_t *key, size_t keyLength)
+static void persistKey(const uint8_t *key, size_t keyLength, int instanceId)
 {
   ESP_LOGI(TAG, "Persisting attestation information");
 
-  const auto keyHex    = crypto::toHex(key, keyLength);
-  const auto timestamp = String(getCurrentTime());
+  const auto keyHex           = crypto::toHex(key, keyLength);
+  const auto timestamp        = String(getCurrentTime());
+  const auto instanceIdString = String(instanceId);
 
-  const auto               bufferSize = keyHex.length() + timestamp.length();
+  const auto bufferSize =
+      keyHex.length() + instanceIdString.length() + timestamp.length();
   std::unique_ptr<uint8_t> buffer(new uint8_t[bufferSize]);
+
   memcpy(buffer.get(), keyHex.c_str(), keyHex.length());
-  memcpy(buffer.get() + keyHex.length(), timestamp.c_str(), timestamp.length());
+  memcpy(buffer.get() + keyHex.length(), instanceIdString.c_str(),
+         instanceIdString.length());
+  memcpy(buffer.get() + instanceIdString.length() + keyHex.length(),
+         timestamp.c_str(), timestamp.length());
 
   ESP_LOG_BUFFER_HEX(TAG, buffer.get(), bufferSize);
 
@@ -87,7 +93,8 @@ static void persistKey(const uint8_t *key, size_t keyLength)
 
   const auto signatureHex = crypto::toHex(signature.get(), signatureLength);
 
-  const auto result = keyHex + " " + timestamp + " " + signatureHex;
+  const auto result =
+      keyHex + " " + instanceIdString + " " + timestamp + " " + signatureHex;
 
   ESP_LOGI(TAG, "Persisting attestation info: %s", result.c_str());
 
@@ -98,7 +105,7 @@ bool checkExistingKey()
 {
   /*
    format:
-   key(hex) timestamp signature(hex)
+   key(hex) instanceId timestamp signature(hex)
    */
 
   auto spiffs  = SpiffsUtils::getInstance();
@@ -115,6 +122,8 @@ bool checkExistingKey()
   }
 
   const auto keyHex       = content.substring(0, content.indexOf(" "));
+  content                 = content.substring(content.indexOf(" ") + 1);
+  const auto instanceId   = content.substring(0, content.indexOf(" "));
   content                 = content.substring(content.indexOf(" ") + 1);
   const auto timestamp    = content.substring(0, content.indexOf(" "));
   const auto signatureHex = content.substring(content.indexOf(" ") + 1);
@@ -137,10 +146,14 @@ bool checkExistingKey()
   ESP_LOGI(TAG, "Deserialized signature:");
   ESP_LOG_BUFFER_HEX(TAG, signature.get(), signatureSize);
 
-  const auto               bufferSize = keyHex.length() + timestamp.length();
+  const auto bufferSize =
+      keyHex.length() + instanceId.length() + timestamp.length();
   std::unique_ptr<uint8_t> buffer(new uint8_t[bufferSize]);
   memcpy(buffer.get(), keyHex.c_str(), keyHex.length());
-  memcpy(buffer.get() + keyHex.length(), timestamp.c_str(), timestamp.length());
+  memcpy(buffer.get() + keyHex.length(), instanceId.c_str(),
+         instanceId.length());
+  memcpy(buffer.get() + keyHex.length() + instanceId.length(),
+         timestamp.c_str(), timestamp.length());
 
   ESP_LOGI(TAG, "Buffer to be used for signature verification:");
   ESP_LOG_BUFFER_HEX(TAG, buffer.get(), bufferSize);
@@ -389,9 +402,9 @@ performClientFinish(const char *publicParams, const char *signature,
 
   const auto responseText = client.getString();
   instanceId              = parseResponseForInstanceId(responseText);
-  ESP_LOGI(TAG, "Instance id is %d", instanceId);
+  ESP_LOGI(TAG, "Instance ID is %d", instanceId);
 
-  persistKey(generatedSecret.get(), KEY_SIZE);
+  persistKey(generatedSecret.get(), KEY_SIZE, instanceId);
 
   return std::move(generatedSecret);
 }

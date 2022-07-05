@@ -34,12 +34,14 @@ struct SensorSetting
 };
 
 // CONSTANTS
-static constexpr auto *TAG              = "NET";
-static constexpr auto *MQTT_SERVER      = "mqtts://193.122.11.148:8883";
-static constexpr auto *NTP_SERVER       = "pool.ntp.org";
-static constexpr auto  GMT_OFFSET       = 0;
-static constexpr auto  DAY_LIGHT_OFFSET = 3600;
+static constexpr auto *TAG                    = "NET";
+static constexpr auto *MQTT_SERVER            = "mqtts://193.122.11.148:8883";
+static constexpr auto *NTP_SERVER             = "pool.ntp.org";
+static constexpr auto  GMT_OFFSET             = 0;
+static constexpr auto  DAY_LIGHT_OFFSET       = 3600;
+static constexpr auto  ATTESTATION_STACK_SIZE = 8192;
 
+static TaskHandle_t               attestationTask;
 static auto                       instanceId = 0;
 static std::unique_ptr<uint8_t[]> MQTT_PSK_KEY(nullptr);
 static MlPredictor                predictor(ml::model::modelBytes);
@@ -129,10 +131,31 @@ void NetUtils::attestDevice()
   {
     MQTT_PSK_KEY = attestation::extractExistingKey();
 
-    return;
+    ESP_LOGI(TAG, "Extracted key:");
+    ESP_LOG_BUFFER_HEX(TAG, MQTT_PSK_KEY.get(), KEY_SIZE);
+  }
+  else
+  {
+    performAttestationProcess();
   }
 
-  performAttestationProcess();
+  xTaskCreate(
+      [](void *parameters)
+      {
+        while (true)
+        {
+          vTaskDelay(5 * 60 * 1000 / portTICK_PERIOD_MS);
+
+          ESP_LOGI(TAG, "Checking attestation status...");
+
+          if (!attestation::checkExistingKey())
+          {
+            ESP.restart();
+          }
+        }
+      },
+      "attestationCheck", ATTESTATION_STACK_SIZE, nullptr, tskIDLE_PRIORITY,
+      &attestationTask);
 }
 
 static void handleFailure(const char *message)
