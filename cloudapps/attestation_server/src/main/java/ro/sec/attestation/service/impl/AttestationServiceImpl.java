@@ -16,8 +16,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import ro.sec.attestation.Application;
 import ro.sec.attestation.repo.SecureStore;
 import ro.sec.attestation.service.api.AttestationService;
-import ro.sec.attestation.service.exception.BadSignatureException;
-import ro.sec.attestation.service.exception.BadTestBytesException;
+import ro.sec.attestation.web.error.BadSignatureException;
+import ro.sec.attestation.web.error.BadTestBytesException;
 import ro.sec.attestation.web.dto.*;
 import ro.sec.crypto.CryptoUtils;
 
@@ -25,7 +25,6 @@ import javax.crypto.SecretKey;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
-import java.security.interfaces.ECPublicKey;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
@@ -44,7 +43,6 @@ public class AttestationServiceImpl implements AttestationService {
     private String GW_URL;
     private final Map<String, SecretKey> secretStore;
     private final SecureStore pskStore;
-    private final Certificate certificate;
     private final PrivateKey privateKey;
     private final Map<String, Certificate> certificateMap;
     private final Map<String, byte[]> testBytesMap;
@@ -56,7 +54,7 @@ public class AttestationServiceImpl implements AttestationService {
         this.restTemplate = restTemplate;
         try (var ownCertificateInputStream = Application.class.getClassLoader().getResourceAsStream("server.crt");
              var privateKeyInputStream = Application.class.getClassLoader().getResourceAsStream("server.key")) {
-            this.certificate = CertificateFactory
+            Certificate certificate = CertificateFactory
                     .getInstance("X.509")
                     .generateCertificate(ownCertificateInputStream);
             var privateKeyBytes = privateKeyInputStream.readAllBytes();
