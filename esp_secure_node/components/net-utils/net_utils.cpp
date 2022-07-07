@@ -84,19 +84,19 @@ void NetUtils::startWifi()
 
   ESP_LOGI(TAG, "Attempting to connect to WiFi");
 
-  if (WiFi.begin() == WL_CONNECT_FAILED)
-  {
-    credentials::startCredentialsServer();
-  }
-
-  ESP_LOGI(TAG, "Credentials are ok... waiting for WiFi to go up");
-  while (WiFi.status() != WL_CONNECTED)
+  auto retryCounter = 6;
+  WiFi.begin();
+  while (WiFi.status() != WL_CONNECTED || retryCounter--)
   {
     delay(5000);
   }
 
-  ESP_LOGI(TAG, "Connection successful");
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    credentials::startCredentialsServer();
+  }
 
+  ESP_LOGI(TAG, "Credentials are ok... Connection successful");
   ESP_LOGI(TAG, "Getting updated time");
   configTime(GMT_OFFSET, DAY_LIGHT_OFFSET, NTP_SERVER);
   ESP_LOGI(TAG, "Updated time");
