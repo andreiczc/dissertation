@@ -11,16 +11,12 @@
 
 [![Video to Demo](https://tinyurl.com/47mbxskc)](https://youtu.be/OZWl-8FuKec "Secure IoT Solution for Office Building Monitoring Demo")
 
-## Table of contents
+## Table of Contents
 
-- [Secure IoT Solution for Office Building Monitoring](#secure-iot-solution-for-office-building-monitoring)
-  - [Quick Links](#quick-links)
-  - [Video demo](#video-demo)
-  - [Table of contents](#table-of-contents)
-  - [Introduction](#introduction)
-  - [Hardware used](#hardware-used)
-  - [General architecture](#general-architecture)
-
+- [Introduction](#introduction)
+- [Hardware used](#hardware-used)
+- [General architecture](#general-architecture)
+  
 ## Introduction
 
 The purpose of this project is designing a low-powered IoT solution which enforces entity attestation and
