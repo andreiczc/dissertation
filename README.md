@@ -1,19 +1,25 @@
 # Secure IoT Solution for Office Building Monitoring
 
-**Video demo**
+## Quick Links
+
+- [Documentation](https://github.com/andreiczc/dissertation/blob/master/Dissertation.pdf)
+- [Presentation](https://github.com/andreiczc/dissertation/blob/master/Presentation.pdf)
+- [IoT Node Source Code](https://github.com/andreiczc/dissertation/tree/master/esp_secure_node)
+- [Spring Boot Microservices Source Code](https://github.com/andreiczc/dissertation/tree/master/cloudapps)
+
+## Video demo
 
 [![Video to Demo](https://tinyurl.com/47mbxskc)](https://youtu.be/OZWl-8FuKec "Secure IoT Solution for Office Building Monitoring Demo")
-
-## Quick Links
 
 ## Table of contents
 
 - [Secure IoT Solution for Office Building Monitoring](#secure-iot-solution-for-office-building-monitoring)
   - [Quick Links](#quick-links)
+  - [Video demo](#video-demo)
   - [Table of contents](#table-of-contents)
   - [Introduction](#introduction)
   - [Hardware used](#hardware-used)
-  - [General security architecture](#general-security-architecture)
+  - [General architecture](#general-architecture)
 
 ## Introduction
 
@@ -30,12 +36,11 @@ issuing blockchain transactions.
 - SW-420 Vibration
 - MQ-2 Gas Sensor
 
-## General security architecture
+## General architecture
 
-The architecture used for this project largely resembles DAVE-2 architecture developed by nVidia as can be seen in [this paper](https://developer.nvidia.com/blog/deep-learning-self-driving-cars/).
+![General Architecture](etc/docs/diagrams/images/story.png)
 
-![Architecture of the neural network](etc/docs/diagrams/images/firefighters_diagram.png)
-
-Since the input is different from the original paper, alterations were made to that layer to better accommodate the hardware on hand.
-The live image is 3 channels deep with a resolution of 1280x720, which is then scaled down using OpenCV2's resize function to 320x180. This is done in order to reduce the size of the neural network which greatly speeds up the training and the inference.
-Moving on, the architecture is the same, having the convolutional layers activated by ReLU functions and the Dense layers being liner. The output layer has 3 neurons representing the directions the car can take next (e.g. left, right, forward), being soft-max activated in order to get a probability distribution over predicted output classes.
+The designed solution proposes a Directly Connected Architecture which features End-to-End encryption. Besides that, an attestation process has been implemented which verifies the origin of the node using Public Key Cryptography. This process features mutual authentication, session key establishment and Instance ID allocation. \
+The data from the sensors is transmitted via MQTT in TLS-PSK mode, which can then be collected by any interested party which possesses the required key-pair, since mutual authentication is also enabled at broker level. \
+This solution includes a MQTT Client which upon collection will send it via HTTPS call to the Cloud Gateway in order to be persisted in a MySQL database. \
+The data can be queried only by authorized users, the authentication being done through JWT.
