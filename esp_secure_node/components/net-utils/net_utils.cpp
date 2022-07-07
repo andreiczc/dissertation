@@ -86,8 +86,9 @@ void NetUtils::startWifi()
 
   auto retryCounter = 6;
   WiFi.begin();
-  while (WiFi.status() != WL_CONNECTED || retryCounter--)
+  while (WiFi.status() != WL_CONNECTED && retryCounter--)
   {
+    ESP_LOGI(TAG, "Waiting... Retry counter: %d", retryCounter);
     delay(5000);
   }
 
