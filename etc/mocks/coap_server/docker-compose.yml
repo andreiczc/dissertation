@@ -1,0 +1,6 @@
+version: '3.9'
+services:
+  srv:
+    image: coap_server
+    ports:
+      - "5683:5683/udp"

@@ -1,0 +1,18 @@
+openssl genrsa -out server.key 2048
+openssl req -out server.csr -key server.key -new
+openssl x509 -req -in server.csr -CA ../ca/ca.crt -CAkey ../ca/ca.key -CAcreateserial -out server.crt -days 365 -extfile ../v3.ext
+
+openssl ecparam -name brainpoolP256r1 -genkey -noout -out server.key
+openssl req -new -x509 -key server.key -out server.cert -days 360
+openssl pkcs8 -topk8 -nocrypt -in server.key -out server8.key
+
+openssl ecparam -name brainpoolP256r1 -genkey -noout -out client.key
+openssl req -new -x509 -key client.key -out client.cert -days 360
+openssl pkcs8 -topk8 -nocrypt -in client.key -out client8.key
+
+openssl ecparam -name brainpoolP256r1 -genkey -noout -outform der -out client.key
+openssl req -new -x509 -key client.key -keyform der -out client.cert -days 360
+
+openssl req -new -x509 -days 365 -extensions v3_ca -keyout ca.key -out ca.crt
+
+openssl pkcs12 -export -in server.crt -inkey server.key -out server.p12 -name dbapp -CAfile ca.crt -caname root

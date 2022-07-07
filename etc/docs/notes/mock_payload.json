@@ -1,0 +1,12 @@
+{
+  "timestamp": 1,
+  "values": [
+    {
+      "objectId": 1,
+      "instanceId": 2,
+      "resourceId": 3,
+      "datatype": "Float",
+      "value": 2.9
+    }
+  ]
+}

@@ -1,2 +1,0 @@
-mqtt:
-  psk_file: /etc/mosquitto/certs/psk_file.txt
